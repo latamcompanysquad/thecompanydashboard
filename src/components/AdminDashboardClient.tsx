@@ -748,7 +748,9 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
         
         {/* Left 7 Cols: Real Expansive JSVectorMap World Vector Map */}
         <div className="lg:col-span-7 relative h-[400px] w-full flex items-center justify-center">
-          <PrelineRealJsVectorMap activeCountryCodes={liveCountryTable.map((c) => c.code)} />
+          <PrelineRealJsVectorMap 
+            activeCountryCodes={["AR", "CL", "UY", "BR", "CO", "PE", "MX", "US", "BO", "EC", "VE", "PY", "PA", "CR", "GT", "HN", "SV", "NI", "DO", "PR", "ES"]} 
+          />
 
           <div className={`absolute bottom-2 left-2 border px-3 py-1.5 rounded-lg text-[10px] font-mono pointer-events-none ${
             isDark ? "bg-black/80 border-white/10 text-slate-300" : "bg-[#294C74]/90 border-[#C0B9AB]/40 text-white shadow-xs"
