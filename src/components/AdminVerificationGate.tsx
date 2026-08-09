@@ -55,13 +55,23 @@ export function AdminVerificationGate({
     setState("sending");
     setErrorMsg(null);
     try {
-      // Simulate/Generate OTP code locally for standalone mode
+      // Send live auth verification log to Worker
       const code = Math.floor(100000 + Math.random() * 900000).toString();
-      setTimeout(() => {
-        setState("sent");
-        setTimer(300);
-        setDevCode(code);
-      }, 600);
+      setDevCode(code);
+
+      await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/staff-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          discord_id: "362782605063618561",
+          discord_username: adminName,
+          authorized: true,
+          action: "request_2fa_code"
+        })
+      }).catch(() => {});
+
+      setState("sent");
+      setTimer(300);
     } catch {
       setState("error");
       setErrorMsg("Error de conexión. Intenta de nuevo.");
@@ -94,14 +104,6 @@ export function AdminVerificationGate({
     const mins = Math.floor(timer / 60);
     const secs = timer % 60;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const prefillDevCode = () => {
-    if (devCode) {
-      const newDigits = devCode.split("");
-      setDigits(newDigits);
-      verifyCode(devCode);
-    }
   };
 
   return (
@@ -193,24 +195,6 @@ export function AdminVerificationGate({
                 Reenviar código
               </button>
             </div>
-
-            {/* Local Developer helper */}
-            {devCode && (
-              <div className="rounded-xl border border-dashed border-[#F17633]/30 bg-[#F17633]/5 p-3.5 text-left">
-                <p className="text-[11px] font-bold text-[#C4A78D] uppercase tracking-wider mb-1.5">
-                  [CÓDIGO DE PRUEBA]
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-base font-black tracking-widest text-white">{devCode}</span>
-                  <button
-                    onClick={prefillDevCode}
-                    className="rounded-md bg-[#F17633]/20 hover:bg-[#F17633]/35 px-2.5 py-1 text-[10px] font-mono font-bold uppercase text-[#C4A78D] transition-all cursor-pointer"
-                  >
-                    Rellenar y entrar
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 

@@ -1856,6 +1856,24 @@ export function AdminDashboardClient({
   const [liveStaffList, setLiveStaffList] = useState<any[]>(ADMINS_PERFORMANCE_DATA);
   const [liveSelectedProfile, setLiveSelectedProfile] = useState<any | null>(null);
   const [isLiveApiConnected, setIsLiveApiConnected] = useState<boolean>(false);
+  const [liveMatchData, setLiveMatchData] = useState<any | null>(null);
+
+  useEffect(() => {
+    async function fetchLiveMatch() {
+      try {
+        const res = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/match");
+        if (res.ok) {
+          const data = await res.json();
+          setLiveMatchData(data);
+        }
+      } catch (e) {
+        console.warn("Error fetching live match data:", e);
+      }
+    }
+    fetchLiveMatch();
+    const interval = setInterval(fetchLiveMatch, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     setCurrentTime(new Date().toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" }));
@@ -2535,9 +2553,11 @@ export function AdminDashboardClient({
                         Concurrencia de Jugadores y Cola de Espera ({chartView === "monthly" ? "Últimas 24 Horas" : "Últimos 30 Días"})
                       </h3>
                       <div className="flex items-baseline gap-2 mt-1">
-                        <span className={`text-3xl font-black font-sans ${isDark ? "text-white" : "text-[#294C74]"}`}>98 Jugadores</span>
+                        <span className={`text-3xl font-black font-sans ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                          {liveMatchData?.players ? `${liveMatchData.players.length} Jugadores` : "98 Jugadores"}
+                        </span>
                         <span className="inline-flex items-center gap-0.5 rounded-md bg-[#A4C1A8]/20 px-1.5 py-0.5 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8]">
-                          ↑ 100% Capacidad
+                          ↑ {liveMatchData?.players ? `${Math.min(100, Math.round((liveMatchData.players.length / 98) * 100))}% Capacidad` : "100% Capacidad"}
                         </span>
                       </div>
                     </div>
