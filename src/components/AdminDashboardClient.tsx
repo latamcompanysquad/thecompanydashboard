@@ -902,32 +902,59 @@ function SalezyExactArcGauge({
 
 {/* DISCORD SERVER REPORT EMBED WIDGET */}
 function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
-  const [reportPeriod] = useState("29/05/2026 – 29/06/2026");
+  const [liveReport, setLiveReport] = useState<any | null>(null);
+
+  useEffect(() => {
+    async function loadReport() {
+      try {
+        const res = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/server-report");
+        if (res.ok) {
+          const data = await res.json();
+          setLiveReport(data);
+        }
+      } catch (e) {
+        console.warn("Could not load live server report:", e);
+      }
+    }
+    loadReport();
+  }, []);
+
+  const reportPeriod = liveReport?.periodLabel || "Todo el Tiempo (Histórico Completo)";
+
+  const uniquePlayersVal = liveReport?.summary?.uniquePlayers ? liveReport.summary.uniquePlayers.toLocaleString('es-ES') : "10,767";
+  const totalMatchesVal = liveReport?.summary?.totalMatches ? liveReport.summary.totalMatches.toLocaleString('es-ES') : "364";
+  const avgDurationVal = liveReport?.summary?.avgMatchDurationMinutes ? `${liveReport.summary.avgMatchDurationMinutes}m` : "58m";
+  const totalSessionsVal = liveReport?.summary?.totalPlayerSessions ? liveReport.summary.totalPlayerSessions.toLocaleString('es-ES') : "31,919";
+  const mostPlayedMapVal = liveReport?.summary?.mostPlayedMap || "Mutaha";
+  const mostPlayedLayerVal = liveReport?.summary?.mostPlayedLayer || "Mutaha RAAS v1";
+  const longestMatchVal = liveReport?.summary?.longestMatchMinutes ? `${Math.floor(liveReport.summary.longestMatchMinutes / 60)}h ${liveReport.summary.longestMatchMinutes % 60}m` : "7h 47m";
 
   const SUMMARY_KPI_CARDS = [
-    { title: "Jugadores Únicos Activos", value: "4,925", icon: Users, color: "#F17633", badge: "Población mensual" },
-    { title: "Partidas Completadas", value: "350", icon: PlayCircle, color: "#294C74", badge: "Matchs finalizados" },
-    { title: "Duración Promedio / Partida", value: "55m", icon: Clock, color: "#69989E", badge: "Tiempo medio por mapa" },
-    { title: "Tiempo Juego Avg / Jugador", value: "5h 54m", icon: Award, color: "#A4C1A8", badge: "Permanencia por usuario" },
-    { title: "Sesiones en Scoreboards", value: "31,602", icon: FileText, color: "#C4A78D", badge: "Registros de tabla final" },
-    { title: "Mapa Más Jugado", value: "Narva", icon: Globe, color: "#F17633", badge: "37 partidas completadas" },
-    { title: "Layer Más Jugada", value: "Fallujah RAAS v1", icon: Shield, color: "#294C74", badge: "27 partidas en el mes" },
-    { title: "Hrs/Día con 50+ Jugadores", value: "7.1h", icon: Flame, color: "#F17633", badge: "Rango de alta concurrencia" },
-    { title: "Partida Más Larga", value: "1h 54m", icon: Trophy, color: "#A4C1A8", badge: "Máximo récord en mapa" },
+    { title: "Jugadores Únicos Activos", value: uniquePlayersVal, icon: Users, color: "#F17633", badge: "Población total acumulada" },
+    { title: "Partidas Completadas", value: totalMatchesVal, icon: PlayCircle, color: "#294C74", badge: "Matchs finalizados" },
+    { title: "Duración Promedio / Partida", value: avgDurationVal, icon: Clock, color: "#69989E", badge: "Tiempo medio por mapa" },
+    { title: "Tiempo Juego Avg / Jugador", value: "7h 51m", icon: Award, color: "#A4C1A8", badge: "Permanencia por usuario" },
+    { title: "Sesiones en Scoreboards", value: totalSessionsVal, icon: FileText, color: "#C4A78D", badge: "Registros de tabla final" },
+    { title: "Mapa Más Jugado", value: mostPlayedMapVal, icon: Globe, color: "#F17633", badge: "Mapa principal en servidor" },
+    { title: "Layer Más Jugada", value: mostPlayedLayerVal, icon: Shield, color: "#294C74", badge: "Layer con más partidas" },
+    { title: "Hrs/Día con 50+ Jugadores", value: "11h", icon: Flame, color: "#F17633", badge: "Rango de alta concurrencia" },
+    { title: "Partida Más Larga", value: longestMatchVal, icon: Trophy, color: "#A4C1A8", badge: "Máximo récord en mapa" },
   ];
 
-  const TEAM_VICTORIES = [
-    { faction: "49th Combined Arms Army", wins: 22, percent: 6 },
-    { faction: "Manticore Security Task Force", wins: 19, percent: 5 },
-    { faction: "21st Division", wins: 15, percent: 4 },
-    { faction: "3rd Division Battle Group", wins: 15, percent: 4 },
-    { faction: "58th Motorized Brigade", wins: 15, percent: 4 },
-    { faction: "11th Army Corps", wins: 14, percent: 4 },
-    { faction: "1st Infantry Division", wins: 13, percent: 4 },
-    { faction: "1st Separate Guards Brigade", wins: 12, percent: 3 },
-    { faction: "112th Medium Combined Arms Brigade", wins: 10, percent: 3 },
-    { faction: "Irregular Battle Group", wins: 10, percent: 3 },
-  ];
+  const TEAM_VICTORIES = liveReport?.teamWins && liveReport.teamWins.length > 0
+    ? liveReport.teamWins
+    : [
+        { faction: "Armed Forces of Ukraine", wins: 43, percent: 15 },
+        { faction: "Canadian Armed Forces", wins: 37, percent: 13 },
+        { faction: "Western Private Military Contractors", wins: 36, percent: 12 },
+        { faction: "Russian Ground Forces", wins: 34, percent: 12 },
+        { faction: "United States Army", wins: 33, percent: 11 },
+        { faction: "People's Liberation Army", wins: 26, percent: 9 },
+        { faction: "Middle Eastern Insurgents", wins: 24, percent: 8 },
+        { faction: "Irregular Militia Forces", wins: 20, percent: 7 },
+        { faction: "United States Marine Corps", wins: 18, percent: 6 },
+        { faction: "Australian Defence Force", wins: 18, percent: 6 },
+      ];
 
   const TOP_HOURS_DATA = [
     { hour: "21:00 ART", avg: 84, peak: 92 },
@@ -1041,7 +1068,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
           </div>
 
           <div className="space-y-3">
-            {TEAM_VICTORIES.map((v, i) => (
+            {TEAM_VICTORIES.map((v: { faction: string; wins: number; percent: number }, i: number) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs font-sans font-semibold">
                   <span className={isDark ? "text-slate-200" : "text-[#294C74]"}>{v.faction}</span>
@@ -1051,7 +1078,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
                   <div 
                     className="h-full rounded-full transition-all duration-500"
                     style={{ 
-                      width: `${(v.wins / 22) * 100}%`,
+                      width: `${Math.min(100, Math.max(5, (v.wins / (TEAM_VICTORIES[0]?.wins || 1)) * 100))}%`,
                       backgroundColor: i === 0 ? "#F17633" : i < 3 ? "#294C74" : "#69989E"
                     }}
                   />
