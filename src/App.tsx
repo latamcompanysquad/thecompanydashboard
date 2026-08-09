@@ -8,16 +8,24 @@ export default function App() {
   const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
     return localStorage.getItem(LOCAL_STORAGE_KEY) === "true";
   });
+  const [activeAdminName, setActiveAdminName] = useState<string>(() => {
+    return localStorage.getItem("lc_admin_name") || "noe_gt22";
+  });
 
   useEffect(() => {
     if (isAuthorized) {
       localStorage.setItem(LOCAL_STORAGE_KEY, "true");
+      localStorage.setItem("lc_admin_name", activeAdminName);
     } else {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
+      localStorage.removeItem("lc_admin_name");
     }
-  }, [isAuthorized]);
+  }, [isAuthorized, activeAdminName]);
 
-  const handleSuccess = () => {
+  const handleSuccess = (staffUser?: any) => {
+    if (staffUser && staffUser.lastName) {
+      setActiveAdminName(staffUser.lastName.trim());
+    }
     setIsAuthorized(true);
   };
 
@@ -26,8 +34,8 @@ export default function App() {
   };
 
   if (!isAuthorized) {
-    return <AdminVerificationGate adminName="Admin" onSuccess={handleSuccess} />;
+    return <AdminVerificationGate adminName={activeAdminName} onSuccess={handleSuccess} />;
   }
 
-  return <AdminDashboardClient adminName="Admin" onLogout={handleLogout} />;
+  return <AdminDashboardClient adminName={activeAdminName} onLogout={handleLogout} />;
 }
