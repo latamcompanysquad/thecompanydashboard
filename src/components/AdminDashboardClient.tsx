@@ -2551,12 +2551,37 @@ export function AdminDashboardClient({
                 const capacityPercentage = Math.min(100, Math.round((livePlayers / Math.max(1, maxPlayers)) * 100));
 
                 // Generate dynamic rolling 24-hour window ending at current hour
-                const currentHour = new Date().getHours();
+                const nowISO = new Date();
+                const currentHour = nowISO.getHours();
+
+                // Read saved hourly peaks from localStorage to accumulate real 24h history
+                let savedHourlyPeaks: Record<string, { p: number; q: number }> = {};
+                try {
+                  const rawHourly = localStorage.getItem("lc_concurrency_hourly_peaks");
+                  if (rawHourly) savedHourlyPeaks = JSON.parse(rawHourly);
+                } catch (e) {}
+
+                // Save current hour's peak in real-time
+                const currentHourKey = `${nowISO.toISOString().split('T')[0]}_${currentHour}`;
+                const prevHourP = savedHourlyPeaks[currentHourKey]?.p || 0;
+                const prevHourQ = savedHourlyPeaks[currentHourKey]?.q || 0;
+                if (livePlayers > prevHourP || liveQueue > prevHourQ) {
+                  savedHourlyPeaks[currentHourKey] = {
+                    p: Math.max(prevHourP, livePlayers),
+                    q: Math.max(prevHourQ, liveQueue)
+                  };
+                  try {
+                    localStorage.setItem("lc_concurrency_hourly_peaks", JSON.stringify(savedHourlyPeaks));
+                  } catch (e) {}
+                }
+
                 const rolling24hData = Array.from({ length: 24 }).map((_, i) => {
                   const idxFromPast = 23 - i;
-                  const hNum = (currentHour - idxFromPast + 24) % 24;
+                  const targetDate = new Date(nowISO.getTime() - idxFromPast * 60 * 60 * 1000);
+                  const hNum = targetDate.getHours();
                   const hourStr = `${hNum.toString().padStart(2, '0')}:00`;
                   const isCurrentHour = i === 23;
+                  const hourKey = `${targetDate.toISOString().split('T')[0]}_${hNum}`;
 
                   const BASE_CURVE: Record<number, { p: number; q: number }> = {
                     0: { p: 98, q: 22 },
@@ -2587,6 +2612,10 @@ export function AdminDashboardClient({
 
                   if (isCurrentHour) {
                     return { day: hourStr, jugadores: livePlayers, cola: liveQueue };
+                  }
+
+                  if (savedHourlyPeaks[hourKey]) {
+                    return { day: hourStr, jugadores: savedHourlyPeaks[hourKey].p, cola: savedHourlyPeaks[hourKey].q };
                   }
 
                   const base = BASE_CURVE[hNum] || { p: 50, q: 0 };
