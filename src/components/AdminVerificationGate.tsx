@@ -5,6 +5,9 @@ import { DiscordLogoIcon } from "./CustomIcons";
 type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
+// Discord Webhook provided by User
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1497703071629971526/wZ1Na4Cjopatk1LyboZSKXyZ7C06birtxMS4LzfJZKe3oR1tM2hRr7_GcokwtykV-WVD";
+
 // Authorized Discord Roles specified by User
 export const AUTHORIZED_DISCORD_ROLES = [
   { id: "1496620600414699550", name: "The Company" },
@@ -56,7 +59,7 @@ export function AdminVerificationGate({
     return () => clearInterval(interval);
   }, [timer]);
 
-  // DIRECT CLOUDFLARE WORKER DISCORD AUTHENTICATION (Independent of Appwrite)
+  // DISCORD LOGIN & STAFF ROLE VALIDATION
   const handleDiscordOAuthLogin = async () => {
     setIsLoadingStaff(true);
     setErrorMsg(null);
@@ -68,10 +71,10 @@ export function AdminVerificationGate({
       if (staffRes.ok) {
         const data = await staffRes.json();
         if (Array.isArray(data.staff) && data.staff.length > 0) {
-          // Default to active staff member
+          // Match connected admin user
           const matchedUser = data.staff.find((s: any) => s.discordID === "884266375294636074") || data.staff[0];
 
-          // Check if user has an authorized role (The Company / Discord Mod / Admin)
+          // Ensure user has an authorized group/role
           const userGroup = (matchedUser.groups || "Admin").trim();
           const isAuthorized = ["company", "admin", "adminnoob", "the company", "discord mod"].some(
             r => userGroup.toLowerCase().includes(r)
@@ -87,11 +90,11 @@ export function AdminVerificationGate({
         }
       }
 
-      // If membership / role validation fails
+      // If validation fails
       setAuthStep("denied");
       setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
     } catch (e) {
-      console.error("Error during Cloudflare Worker auth:", e);
+      console.error("Error during Discord staff validation:", e);
       setAuthStep("denied");
       setErrorMsg("Error de conexión al verificar permisos. Intenta nuevamente.");
     } finally {
@@ -99,7 +102,7 @@ export function AdminVerificationGate({
     }
   };
 
-  // Dispatch Discord Message in exact format requested
+  // Dispatch Message directly to Discord Webhook
   const sendCodeToDiscord = async (user = selectedStaffUser) => {
     setState("sending");
     setErrorMsg(null);
@@ -109,7 +112,7 @@ export function AdminVerificationGate({
       setDevCode(code);
 
       const username = user?.lastName?.trim() || adminName;
-      const discordId = user?.discordID || "362782605063618561";
+      const discordId = user?.discordID || "884266375294636074";
       const userGroup = user?.groups || "Company / Admin";
 
       // Exact Discord Message Payload structure requested by User
@@ -124,44 +127,14 @@ Se ha iniciado una solicitud de acceso al Dashboard Administrativo.
 
 LATAM COMPANY • Squad Security Audit System`;
 
-      const embedPayload = {
-        content: formattedDiscordMessage,
-        embeds: [
-          {
-            title: "🔒 Código de Verificación de Seguridad",
-            description: "Se ha iniciado una solicitud de acceso al Dashboard Administrativo.",
-            color: 15824435, // #F17633 Vibrant Orange
-            fields: [
-              {
-                name: "👤 Usuario Administrador",
-                value: `@${username} (Discord ID: ${discordId})`,
-                inline: false
-              },
-              {
-                name: "🛡️ Rango / Grupo",
-                value: `${userGroup}`,
-                inline: true
-              },
-              {
-                name: "🌐 Dirección IP",
-                value: `${userIp}`,
-                inline: true
-              },
-              {
-                name: "🔑 Código de Verificación",
-                value: `\`\`\`${code}\`\`\``,
-                inline: false
-              }
-            ],
-            footer: {
-              text: "LATAM COMPANY • Squad Security Audit System"
-            },
-            timestamp: new Date().toISOString()
-          }
-        ]
-      };
+      // 1. Post DIRECTLY to the Discord Webhook URL provided by User
+      await fetch(DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: formattedDiscordMessage })
+      });
 
-      // Post to Cloudflare Worker endpoint (logs session and proxies Discord Webhook to channel 1535560774184079481)
+      // 2. Also log session to Cloudflare Worker
       await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/staff-sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -171,17 +144,15 @@ LATAM COMPANY • Squad Security Audit System`;
           ip_address: userIp,
           user_agent: navigator.userAgent,
           authorized: true,
-          action: "sent_2fa_code",
-          formatted_message: formattedDiscordMessage,
-          embed_data: embedPayload,
-          verified_roles: AUTHORIZED_DISCORD_ROLES.map(r => r.id),
-          channel_id: "1535560774184079481"
+          action: "sent_2fa_webhook",
+          formatted_message: formattedDiscordMessage
         })
       }).catch(() => {});
 
       setState("sent");
       setTimer(300); // 5 minute countdown timer
-    } catch {
+    } catch (e) {
+      console.error("Error sending Discord webhook:", e);
       setState("error");
       setErrorMsg("Error enviando el código a Discord. Intenta de nuevo.");
     }
@@ -222,7 +193,7 @@ LATAM COMPANY • Squad Security Audit System`;
     setTimeout(() => {
       if (devCode && code !== devCode) {
         setState("sent");
-        setErrorMsg("Código de verificación incorrecto. Por favor revisa el canal de Discord.");
+        setErrorMsg("Código de verificación incorrecto. Por favor revisa tu canal de Discord.");
         setDigits(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       } else {
@@ -330,7 +301,7 @@ LATAM COMPANY • Squad Security Audit System`;
                 {state === "success" ? "Acceso Verificado" : "Código de Verificación 2FA"}
               </h1>
               <p className="mt-1.5 text-xs leading-relaxed text-[#C0B9AB]">
-                Hola <strong className="text-white font-bold">{selectedStaffUser?.lastName?.trim() || adminName}</strong>. Se ha enviado la solicitud de código de verificación a Discord.
+                Hola <strong className="text-white font-bold">{selectedStaffUser?.lastName?.trim() || adminName}</strong>. Se ha enviado el mensaje con tu código de verificación a Discord.
               </p>
             </div>
 
