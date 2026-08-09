@@ -2159,7 +2159,7 @@ export function AdminDashboardClient({
                 steamID: s.steamID,
                 discordLinked: !!s.discordID,
                 status: "online" as const,
-                avatarHash: null,
+                avatarHash: s.discordAvatar || fallback?.avatarHash || null,
                 historical: fallback?.historical || {
                   panelAccessCount: 50,
                   rconCommandCount: 10,
