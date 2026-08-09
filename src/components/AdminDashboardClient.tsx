@@ -921,7 +921,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
 
   const reportPeriod = liveReport?.periodLabel || "Todo el Tiempo (Histórico Completo)";
 
-  const uniquePlayersVal = liveReport?.summary?.uniquePlayers ? liveReport.summary.uniquePlayers.toLocaleString('es-ES') : "10,767";
+  const uniquePlayersVal = liveReport?.summary?.uniquePlayers ? liveReport.summary.uniquePlayers.toLocaleString('es-ES') : "10,774";
   const totalMatchesVal = liveReport?.summary?.totalMatches ? liveReport.summary.totalMatches.toLocaleString('es-ES') : "364";
   const avgDurationVal = liveReport?.summary?.avgMatchDurationMinutes ? `${liveReport.summary.avgMatchDurationMinutes}m` : "58m";
   const totalSessionsVal = liveReport?.summary?.totalPlayerSessions ? liveReport.summary.totalPlayerSessions.toLocaleString('es-ES') : "31,919";
