@@ -1845,7 +1845,7 @@ export function AdminDashboardClient({
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "reports" | "staff" | "roles" | "geography" | "finance" | "gareth">("dashboard");
-  const [chartView, setChartView] = useState<"monthly" | "yearly">("yearly");
+  const [chartView, setChartView] = useState<"24h" | "7d" | "15d" | "30d">("24h");
   const [periodFilter, setPeriodFilter] = useState<"30days" | "alltime">("30days");
   const [isPeriodMenuOpen, setIsPeriodMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
@@ -2647,6 +2647,54 @@ export function AdminDashboardClient({
                   } catch (e) {}
                 }
 
+                const rolling7dData = Array.from({ length: 7 }).map((_, i) => {
+                  const daysAgo = 6 - i;
+                  const d = new Date(todayObj);
+                  d.setDate(todayObj.getDate() - daysAgo);
+
+                  const dayLabel = `${d.getDate().toString().padStart(2, '0')} ${monthNamesEs[d.getMonth()]}`;
+                  const isToday = i === 6;
+                  const dateISO = d.toISOString().split('T')[0];
+
+                  if (isToday) {
+                    return { day: dayLabel, jugadores: livePlayers, cola: liveQueue };
+                  }
+
+                  if (savedDailyPeaks[dateISO]) {
+                    return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
+                  }
+
+                  const pseudoVar = ((d.getDate() * 7 + d.getMonth() * 11) % 16);
+                  const historicPeakJugadores = Math.min(98, Math.max(72, 90 + pseudoVar - 6));
+                  const historicQueue = historicPeakJugadores > 90 ? Math.floor(pseudoVar * 1.1) : 0;
+
+                  return { day: dayLabel, jugadores: historicPeakJugadores, cola: historicQueue };
+                });
+
+                const rolling15dData = Array.from({ length: 15 }).map((_, i) => {
+                  const daysAgo = 14 - i;
+                  const d = new Date(todayObj);
+                  d.setDate(todayObj.getDate() - daysAgo);
+
+                  const dayLabel = `${d.getDate().toString().padStart(2, '0')} ${monthNamesEs[d.getMonth()]}`;
+                  const isToday = i === 14;
+                  const dateISO = d.toISOString().split('T')[0];
+
+                  if (isToday) {
+                    return { day: dayLabel, jugadores: livePlayers, cola: liveQueue };
+                  }
+
+                  if (savedDailyPeaks[dateISO]) {
+                    return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
+                  }
+
+                  const pseudoVar = ((d.getDate() * 7 + d.getMonth() * 11) % 16);
+                  const historicPeakJugadores = Math.min(98, Math.max(72, 90 + pseudoVar - 6));
+                  const historicQueue = historicPeakJugadores > 90 ? Math.floor(pseudoVar * 1.1) : 0;
+
+                  return { day: dayLabel, jugadores: historicPeakJugadores, cola: historicQueue };
+                });
+
                 const rolling30dData = Array.from({ length: 30 }).map((_, i) => {
                   const daysAgo = 29 - i;
                   const d = new Date(todayObj);
@@ -2671,6 +2719,21 @@ export function AdminDashboardClient({
                   return { day: dayLabel, jugadores: historicPeakJugadores, cola: historicQueue };
                 });
 
+                const activeChartData = 
+                  chartView === "24h" ? rolling24hData :
+                  chartView === "7d"  ? rolling7dData  :
+                  chartView === "15d" ? rolling15dData : rolling30dData;
+
+                const activeXInterval = 
+                  chartView === "24h" ? 1 :
+                  chartView === "7d"  ? 0 :
+                  chartView === "15d" ? 1 : 2;
+
+                const activeChartTitle = 
+                  chartView === "24h" ? "Últimas 24 Horas" :
+                  chartView === "7d"  ? "Últimos 7 Días" :
+                  chartView === "15d" ? "Últimos 15 Días" : "Últimos 30 Días";
+
                 return (
                   <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     
@@ -2680,7 +2743,7 @@ export function AdminDashboardClient({
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className={`text-base font-bold tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                              Concurrencia de Jugadores y Cola de Espera ({chartView === "monthly" ? "Últimas 24 Horas" : "Últimos 30 Días"})
+                              Concurrencia de Jugadores y Cola de Espera ({activeChartTitle})
                             </h3>
                           </div>
                           
@@ -2699,24 +2762,44 @@ export function AdminDashboardClient({
 
                           <div className={`flex items-center rounded-xl p-1 font-sans text-xs font-semibold ${isDark ? "bg-[#141821]" : "bg-slate-100"}`}>
                             <button 
-                              onClick={() => setChartView("monthly")}
-                              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                                chartView === "monthly" 
+                              onClick={() => setChartView("24h")}
+                              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                                chartView === "24h" 
                                   ? "bg-[#F17633] text-white shadow-xs" 
                                   : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
                               }`}
                             >
-                              24 Horas
+                              24h
                             </button>
                             <button 
-                              onClick={() => setChartView("yearly")}
-                              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                                chartView === "yearly" 
+                              onClick={() => setChartView("7d")}
+                              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                                chartView === "7d" 
                                   ? "bg-[#F17633] text-white shadow-xs" 
                                   : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
                               }`}
                             >
-                              • 30 Días
+                              7d
+                            </button>
+                            <button 
+                              onClick={() => setChartView("15d")}
+                              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                                chartView === "15d" 
+                                  ? "bg-[#F17633] text-white shadow-xs" 
+                                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+                              }`}
+                            >
+                              15d
+                            </button>
+                            <button 
+                              onClick={() => setChartView("30d")}
+                              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                                chartView === "30d" 
+                                  ? "bg-[#F17633] text-white shadow-xs" 
+                                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+                              }`}
+                            >
+                              30d
                             </button>
                           </div>
                         </div>
@@ -2726,7 +2809,7 @@ export function AdminDashboardClient({
                       <div className="h-64 w-full pt-2 relative">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart 
-                            data={chartView === "monthly" ? rolling24hData : rolling30dData} 
+                            data={activeChartData} 
                             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                           >
                             <defs>
@@ -2746,7 +2829,7 @@ export function AdminDashboardClient({
                               fontSize={10} 
                               tickLine={false} 
                               axisLine={false} 
-                              interval={chartView === "monthly" ? 1 : 2}
+                              interval={activeXInterval}
                               padding={{ left: 10, right: 10 }}
                             />
                             <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}`} />
