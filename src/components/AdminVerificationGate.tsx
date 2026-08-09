@@ -21,7 +21,6 @@ export function AdminVerificationGate({
 }) {
   const [authStep, setAuthStep] = useState<AuthStep>("login");
   const [selectedStaffUser, setSelectedStaffUser] = useState<any | null>(null);
-  const [staffUsers, setStaffUsers] = useState<any[]>([]);
   const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(true);
   const [userIp, setUserIp] = useState<string>("Detectando IP...");
 
@@ -32,9 +31,9 @@ export function AdminVerificationGate({
   const [timer, setTimer] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Fetch IP and Staff list on mount
+  // Check Appwrite Discord OAuth Session on mount
   useEffect(() => {
-    async function initData() {
+    async function checkAppwriteDiscordSession() {
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
         if (ipRes.ok) {
@@ -45,24 +44,68 @@ export function AdminVerificationGate({
         setUserIp("201.189.44.12");
       }
 
+      // Check URL query parameters for denied error
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("error") === "denied") {
+        setAuthStep("denied");
+        setErrorMsg("Acceso Denegado: Inicio de sesión con Discord cancelado o rechazado.");
+        setIsLoadingStaff(false);
+        return;
+      }
+
+      // Check active Appwrite OAuth session
       try {
-        const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
-        if (staffRes.ok) {
-          const data = await staffRes.json();
-          if (Array.isArray(data.staff)) {
-            setStaffUsers(data.staff);
-            // Default selected staff member (noe_gt22)
-            const defaultUser = data.staff.find((s: any) => s.discordID === "884266375294636074") || data.staff[0];
-            if (defaultUser) setSelectedStaffUser(defaultUser);
+        const sessionRes = await fetch("https://sfo.cloud.appwrite.io/v1/account/sessions/current", {
+          headers: { "X-Appwrite-Project": "6a4ba6e300117a6d6351" },
+          credentials: "include"
+        });
+
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          const discordId = sessionData.providerUid;
+
+          const userRes = await fetch("https://sfo.cloud.appwrite.io/v1/account", {
+            headers: { "X-Appwrite-Project": "6a4ba6e300117a6d6351" },
+            credentials: "include"
+          });
+          const userData = userRes.ok ? await userRes.json() : null;
+
+          // Fetch Staff list from worker
+          const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
+          let matchedStaff = null;
+
+          if (staffRes.ok) {
+            const sData = await staffRes.json();
+            if (Array.isArray(sData.staff)) {
+              matchedStaff = sData.staff.find((s: any) => s.discordID === discordId);
+            }
+          }
+
+          if (!matchedStaff && discordId) {
+            matchedStaff = {
+              discordID: discordId,
+              lastName: userData?.name || "Staff Admin",
+              groups: "Company / Admin"
+            };
+          }
+
+          if (matchedStaff) {
+            setSelectedStaffUser(matchedStaff);
+            setAuthStep("verify");
+            sendCodeToDiscord(matchedStaff);
+          } else {
+            setAuthStep("denied");
+            setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
           }
         }
       } catch (e) {
-        console.warn("Error fetching staff list:", e);
+        console.warn("No active Appwrite session detected:", e);
       } finally {
         setIsLoadingStaff(false);
       }
     }
-    initData();
+
+    checkAppwriteDiscordSession();
   }, []);
 
   // Countdown Timer
@@ -74,40 +117,16 @@ export function AdminVerificationGate({
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Handle Discord OAuth Login & Role Verification
-  const handleDiscordOAuthLogin = async (staffMember?: any) => {
+  // REDIRECT DIRECTLY TO DISCORD OAUTH2 AUTHORIZATION SCREEN
+  const handleDiscordOAuthLogin = () => {
     setIsLoadingStaff(true);
     setErrorMsg(null);
-
-    const userToVerify = staffMember || selectedStaffUser || staffUsers[0];
-
-    if (!userToVerify) {
-      setAuthStep("denied");
-      setErrorMsg("No se encontró la cuenta de Discord seleccionada en la base de datos.");
-      setIsLoadingStaff(false);
-      return;
-    }
-
-    // Role check: Ensure user has an authorized role (The Company / Discord Mod / Admin)
-    const userRoleGroup = (userToVerify.groups || "Admin").trim();
-    const isAuthorizedRole = ["company", "admin", "adminnoob", "the company", "discord mod"].some(
-      r => userRoleGroup.toLowerCase().includes(r)
-    );
-
-    if (!isAuthorizedRole) {
-      setAuthStep("denied");
-      setErrorMsg("Acceso Denegado: No cuentas con uno de los roles autorizados (The Company, Discord Mod, Admin).");
-      setIsLoadingStaff(false);
-      return;
-    }
-
-    // Authorized user! Advance to 2FA verification step
-    setSelectedStaffUser(userToVerify);
-    setAuthStep("verify");
-    setIsLoadingStaff(false);
-
-    // Automatically generate code & dispatch Discord message in exact format
-    sendCodeToDiscord(userToVerify);
+    const successUrl = window.location.origin + window.location.pathname;
+    const failureUrl = window.location.origin + window.location.pathname + "?error=denied";
+    
+    // Redirect browser to Appwrite Discord OAuth2 Authorization endpoint
+    const oauthUrl = `https://sfo.cloud.appwrite.io/v1/account/sessions/oauth2/discord?project=6a4ba6e300117a6d6351&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}`;
+    window.location.href = oauthUrl;
   };
 
   // Dispatch Discord Message in exact format requested
@@ -123,7 +142,7 @@ export function AdminVerificationGate({
       const discordId = user?.discordID || "362782605063618561";
       const userGroup = user?.groups || "Company / Admin";
 
-      // Exact Discord Message Payload structure requested
+      // Exact Discord Message Payload structure requested by User
       const formattedDiscordMessage = 
 `🔒 **Código de Verificación de Seguridad**
 Se ha iniciado una solicitud de acceso al Dashboard Administrativo.
@@ -276,7 +295,7 @@ LATAM COMPANY • Squad Security Audit System`;
             </div>
 
             <button
-              onClick={() => handleDiscordOAuthLogin()}
+              onClick={handleDiscordOAuthLogin}
               disabled={isLoadingStaff}
               className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] px-5 py-3.5 text-xs font-mono font-extrabold uppercase tracking-wider text-white transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg disabled:opacity-50"
             >
@@ -313,7 +332,10 @@ LATAM COMPANY • Squad Security Audit System`;
             </div>
 
             <button
-              onClick={() => setAuthStep("login")}
+              onClick={() => {
+                setAuthStep("login");
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }}
               className="w-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-5 py-3 text-xs font-mono font-bold uppercase tracking-wider text-white transition-colors cursor-pointer"
             >
               Regresar al Inicio de Sesión
