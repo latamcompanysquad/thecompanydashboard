@@ -2488,83 +2488,82 @@ export function AdminDashboardClient({
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto space-y-6">
 
-          {/* Welcome Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className={`text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                ¡Hola de nuevo, {adminName}!
-              </h1>
-              <p className="mt-0.5 text-xs text-slate-400 font-medium">
-                {currentTime ? `Estado del Servidor de Squad • ${currentTime}` : "Estado del Servidor de Squad"}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 font-sans text-xs relative">
-              <div className="relative">
-                <button 
-                  onClick={() => setIsPeriodMenuOpen(!isPeriodMenuOpen)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 font-semibold border transition-all cursor-pointer ${
-                    isDark ? "bg-[#1B212D] border-[#53565A]/40 text-slate-200 hover:bg-white/10" : "bg-[#F8F5F1] border-[#C0B9AB]/60 text-[#294C74] hover:bg-slate-50 shadow-xs"
-                  }`}
-                >
-                  <CustomCalendarIcon size={16} color={periodFilter === "30days" ? "#F17633" : "#294C74"} strokeWidth={2.5} />
-                  <span>{periodFilter === "30days" ? "Último Mes (30 días)" : "Todo el Tiempo"}</span>
-                  <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${isPeriodMenuOpen ? "rotate-180" : ""}`} />
-                </button>
-
-                {isPeriodMenuOpen && (
-                  <div className={`absolute right-0 mt-2 w-56 rounded-2xl border shadow-2xl z-50 p-1.5 space-y-1 font-sans text-xs animate-in fade-in zoom-in-95 ${
-                    isDark ? "bg-[#1B212D] border-[#53565A]/40 text-white" : "bg-[#F8F5F1] border-[#C0B9AB]/60 text-[#294C74]"
-                  }`}>
-                    <button
-                      onClick={() => {
-                        setPeriodFilter("30days");
-                        setIsPeriodMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
-                        periodFilter === "30days" 
-                          ? "bg-[#F17633]/15 text-[#F17633] font-bold" 
-                          : "hover:bg-slate-100 dark:hover:bg-white/5 opacity-80"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <CustomCalendarIcon size={15} color="#F17633" strokeWidth={2.5} />
-                        <span>Último Mes (30 días)</span>
-                      </div>
-                      {periodFilter === "30days" && <Check className="h-3.5 w-3.5 text-[#F17633]" />}
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setPeriodFilter("alltime");
-                        setIsPeriodMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
-                        periodFilter === "alltime" 
-                          ? "bg-[#294C74]/15 text-[#294C74] font-bold" 
-                          : "hover:bg-slate-100 dark:hover:bg-white/5 opacity-80"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Globe className="h-3.5 w-3.5 text-[#294C74]" />
-                        <span>Todo el Tiempo (Histórico)</span>
-                      </div>
-                      {periodFilter === "alltime" && <Check className="h-3.5 w-3.5 text-[#294C74]" />}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <button className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold bg-[#F17633] text-white hover:bg-[#d96222] transition-all cursor-pointer shadow-xs">
-                <Download className="h-3.5 w-3.5" />
-                <span>Exportar Informe</span>
-              </button>
-            </div>
-          </div>
-
           {/* TAB 1: MAIN DASHBOARD (SQUAD SERVER ANALYTICS & GEOGRAPHY WIDGET) */}
           {activeTab === "dashboard" && (
             <div className="space-y-6">
+              {/* Welcome Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h1 className={`text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                    ¡Hola de nuevo, {adminName}!
+                  </h1>
+                  <p className="mt-0.5 text-xs text-slate-400 font-medium">
+                    {currentTime ? `Estado del Servidor de Squad • ${currentTime}` : "Estado del Servidor de Squad"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 font-sans text-xs relative">
+                  <div className="relative">
+                    <button 
+                      onClick={() => setIsPeriodMenuOpen(!isPeriodMenuOpen)}
+                      className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 font-semibold border transition-all cursor-pointer ${
+                        isDark ? "bg-[#1B212D] border-[#53565A]/40 text-slate-200 hover:bg-white/10" : "bg-[#F8F5F1] border-[#C0B9AB]/60 text-[#294C74] hover:bg-slate-50 shadow-xs"
+                      }`}
+                    >
+                      <CustomCalendarIcon size={16} color={periodFilter === "30days" ? "#F17633" : "#294C74"} strokeWidth={2.5} />
+                      <span>{periodFilter === "30days" ? "Último Mes (30 días)" : "Todo el Tiempo"}</span>
+                      <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${isPeriodMenuOpen ? "rotate-180" : ""}`} />
+                    </button>
+
+                    {isPeriodMenuOpen && (
+                      <div className={`absolute right-0 mt-2 w-56 rounded-2xl border shadow-2xl z-50 p-1.5 space-y-1 font-sans text-xs animate-in fade-in zoom-in-95 ${
+                        isDark ? "bg-[#1B212D] border-[#53565A]/40 text-white" : "bg-[#F8F5F1] border-[#C0B9AB]/60 text-[#294C74]"
+                      }`}>
+                        <button
+                          onClick={() => {
+                            setPeriodFilter("30days");
+                            setIsPeriodMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                            periodFilter === "30days" 
+                              ? "bg-[#F17633]/15 text-[#F17633] font-bold" 
+                              : "hover:bg-slate-100 dark:hover:bg-white/5 opacity-80"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <CustomCalendarIcon size={15} color="#F17633" strokeWidth={2.5} />
+                            <span>Último Mes (30 días)</span>
+                          </div>
+                          {periodFilter === "30days" && <Check className="h-3.5 w-3.5 text-[#F17633]" />}
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setPeriodFilter("alltime");
+                            setIsPeriodMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                            periodFilter === "alltime" 
+                              ? "bg-[#294C74]/15 text-[#294C74] font-bold" 
+                              : "hover:bg-slate-100 dark:hover:bg-white/5 opacity-80"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-3.5 w-3.5 text-[#294C74]" />
+                            <span>Todo el Tiempo (Histórico)</span>
+                          </div>
+                          {periodFilter === "alltime" && <Check className="h-3.5 w-3.5 text-[#294C74]" />}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <button className="inline-flex items-center gap-2 rounded-xl px-4 py-2 font-semibold bg-[#F17633] text-white hover:bg-[#d96222] transition-all cursor-pointer shadow-xs">
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Exportar Informe</span>
+                  </button>
+                </div>
+              </div>
               
               {/* EXACT GEOGRAPHY ANALYTICS CARD WIDGET WITH REAL JSVECTORMAP */}
               <GeographyAnalyticsWidget isDark={isDark} />
