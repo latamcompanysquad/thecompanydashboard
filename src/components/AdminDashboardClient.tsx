@@ -2583,33 +2583,6 @@ export function AdminDashboardClient({
                   const isCurrentHour = i === 23;
                   const hourKey = `${targetDate.toISOString().split('T')[0]}_${hNum}`;
 
-                  const BASE_CURVE: Record<number, { p: number; q: number }> = {
-                    0: { p: 98, q: 22 },
-                    1: { p: 94, q: 18 },
-                    2: { p: 88, q: 12 },
-                    3: { p: 62, q: 2 },
-                    4: { p: 28, q: 0 },
-                    5: { p: 16, q: 0 },
-                    6: { p: 10, q: 0 },
-                    7: { p: 14, q: 0 },
-                    8: { p: 22, q: 0 },
-                    9: { p: 38, q: 0 },
-                    10: { p: 52, q: 2 },
-                    11: { p: 68, q: 6 },
-                    12: { p: 84, q: 10 },
-                    13: { p: 92, q: 14 },
-                    14: { p: 98, q: 20 },
-                    15: { p: 98, q: 24 },
-                    16: { p: 96, q: 18 },
-                    17: { p: 98, q: 22 },
-                    18: { p: 98, q: 26 },
-                    19: { p: 98, q: 28 },
-                    20: { p: 98, q: 24 },
-                    21: { p: 98, q: 22 },
-                    22: { p: 98, q: 20 },
-                    23: { p: 96, q: 16 },
-                  };
-
                   if (isCurrentHour) {
                     return { day: hourStr, jugadores: livePlayers, cola: liveQueue };
                   }
@@ -2618,8 +2591,7 @@ export function AdminDashboardClient({
                     return { day: hourStr, jugadores: savedHourlyPeaks[hourKey].p, cola: savedHourlyPeaks[hourKey].q };
                   }
 
-                  const base = BASE_CURVE[hNum] || { p: 50, q: 0 };
-                  return { day: hourStr, jugadores: base.p, cola: base.q };
+                  return { day: hourStr, jugadores: 0, cola: 0 };
                 });
 
                 // Generate dynamic rolling 30-day window ending at current date
@@ -2664,11 +2636,7 @@ export function AdminDashboardClient({
                     return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
                   }
 
-                  const pseudoVar = ((d.getDate() * 7 + d.getMonth() * 11) % 16);
-                  const historicPeakJugadores = Math.min(98, Math.max(72, 90 + pseudoVar - 6));
-                  const historicQueue = historicPeakJugadores > 90 ? Math.floor(pseudoVar * 1.1) : 0;
-
-                  return { day: dayLabel, jugadores: historicPeakJugadores, cola: historicQueue };
+                  return { day: dayLabel, jugadores: 0, cola: 0 };
                 });
 
                 const rolling15dData = Array.from({ length: 15 }).map((_, i) => {
@@ -2688,11 +2656,7 @@ export function AdminDashboardClient({
                     return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
                   }
 
-                  const pseudoVar = ((d.getDate() * 7 + d.getMonth() * 11) % 16);
-                  const historicPeakJugadores = Math.min(98, Math.max(72, 90 + pseudoVar - 6));
-                  const historicQueue = historicPeakJugadores > 90 ? Math.floor(pseudoVar * 1.1) : 0;
-
-                  return { day: dayLabel, jugadores: historicPeakJugadores, cola: historicQueue };
+                  return { day: dayLabel, jugadores: 0, cola: 0 };
                 });
 
                 const rolling30dData = Array.from({ length: 30 }).map((_, i) => {
@@ -2712,11 +2676,7 @@ export function AdminDashboardClient({
                     return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
                   }
 
-                  const pseudoVar = ((d.getDate() * 7 + d.getMonth() * 11) % 16);
-                  const historicPeakJugadores = Math.min(98, Math.max(72, 90 + pseudoVar - 6));
-                  const historicQueue = historicPeakJugadores > 90 ? Math.floor(pseudoVar * 1.1) : 0;
-
-                  return { day: dayLabel, jugadores: historicPeakJugadores, cola: historicQueue };
+                  return { day: dayLabel, jugadores: 0, cola: 0 };
                 });
 
                 const activeChartData = 
