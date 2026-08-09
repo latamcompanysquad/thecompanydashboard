@@ -2163,6 +2163,7 @@ export function AdminDashboardClient({
                 discordLinked: !!s.discordID,
                 status: "online" as const,
                 avatarHash: s.discordAvatar || fallback?.avatarHash || null,
+                avatarUrl: s.avatarUrl || null,
                 historical: fallback?.historical || {
                   panelAccessCount: 50,
                   rconCommandCount: 10,
@@ -2600,7 +2601,7 @@ export function AdminDashboardClient({
                   </div>
 
                   {displayStaffList.map((adm, idx) => {
-                    const avatarUrl = adm.discord_id ? getDiscordAvatarUrl(adm.discord_id, adm.avatarHash) : `https://cdn.discordapp.com/embed/avatars/${idx % 5}.png`;
+                    const avatarUrl = adm.avatarUrl || (adm.discord_id ? getDiscordAvatarUrl(adm.discord_id, adm.avatarHash) : `https://cdn.discordapp.com/embed/avatars/${idx % 5}.png`);
                     return (
                       <div key={adm.name + idx} className="flex items-center justify-between px-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
                         <div className="flex items-center gap-2 min-w-0">
