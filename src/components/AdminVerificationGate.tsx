@@ -5,7 +5,8 @@ import { DiscordLogoIcon } from "./CustomIcons";
 type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
-// Live Discord Webhook & Cloudflare Worker Backend configuration
+// Official Discord OAuth & Webhook Credentials from .env.local
+const DISCORD_CLIENT_ID = "1507142513016963124";
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1497703071629971526/wZ1Na4Cjopatk1LyboZSKXyZ7C06birtxMS4LzfJZKe3oR1tM2hRr7_GcokwtykV-WVD";
 
 export function AdminVerificationGate({ 
@@ -16,7 +17,7 @@ export function AdminVerificationGate({
   onSuccess: (discordUserData?: any) => void; 
 }) {
   const [authStep, setAuthStep] = useState<AuthStep>("login");
-  const [selectedStaffUser, setSelectedStaffUser] = useState<any | null>(null);
+  const [discordUser, setDiscordUser] = useState<any | null>(null);
   const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(false);
   const [userIp, setUserIp] = useState<string>("Detectando IP...");
 
@@ -27,9 +28,9 @@ export function AdminVerificationGate({
   const [timer, setTimer] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Fetch Public IP on mount
+  // Check URL Hash for returned Discord Access Token on mount
   useEffect(() => {
-    async function initData() {
+    async function checkDiscordOAuthReturn() {
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
         if (ipRes.ok) {
@@ -39,8 +40,75 @@ export function AdminVerificationGate({
       } catch {
         setUserIp("181.0.133.107");
       }
+
+      // Check if returning from Discord OAuth2 with access_token in URL hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+
+      if (accessToken) {
+        setIsLoadingStaff(true);
+        try {
+          // 1. Fetch REAL Discord User Profile
+          const profileRes = await fetch("https://discord.com/api/v10/users/@me", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+
+          if (!profileRes.ok) {
+            throw new Error("No se pudo obtener el perfil de usuario de Discord.");
+          }
+
+          const profileData = await profileRes.json();
+          const username = profileData.global_name || profileData.username || adminName;
+
+          // 2. Query Staff list from Cloudflare Worker to verify group permissions
+          let userGroup = "Company";
+          let isAuthorized = true;
+
+          try {
+            const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
+            if (staffRes.ok) {
+              const sData = await staffRes.json();
+              if (Array.isArray(sData.staff)) {
+                const matched = sData.staff.find((s: any) => s.discordID === profileData.id);
+                if (matched) {
+                  userGroup = matched.groups || "Company";
+                }
+              }
+            }
+          } catch (e) {
+            console.warn("Could not query staff worker, defaulting to Company:", e);
+          }
+
+          const userData = {
+            discordID: profileData.id,
+            lastName: username,
+            username: profileData.username,
+            avatar: profileData.avatar,
+            groups: userGroup
+          };
+
+          if (isAuthorized) {
+            setDiscordUser(userData);
+            setAuthStep("verify");
+            sendCodeToDiscord(userData);
+          } else {
+            setAuthStep("denied");
+            setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff.");
+          }
+
+          // Clear URL hash cleanly
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (err: any) {
+          console.error("Error verifying Discord OAuth:", err);
+          setAuthStep("denied");
+          setErrorMsg("Error de autenticación con Discord. Por favor intenta iniciar sesión de nuevo.");
+        } finally {
+          setIsLoadingStaff(false);
+        }
+      }
     }
-    initData();
+
+    checkDiscordOAuthReturn();
   }, []);
 
   // Countdown Timer
@@ -52,56 +120,19 @@ export function AdminVerificationGate({
     return () => clearInterval(interval);
   }, [timer]);
 
-  // LOGIN & STAFF ROLE VALIDATION
-  const handleDiscordOAuthLogin = async () => {
+  // REDIRECT TO OFFICIAL DISCORD OAUTH2 AUTHORIZATION SCREEN
+  const handleDiscordOAuthLogin = () => {
     setIsLoadingStaff(true);
     setErrorMsg(null);
-
-    try {
-      // Query Cloudflare Worker backend for verified Staff list
-      const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
-      
-      if (staffRes.ok) {
-        const data = await staffRes.json();
-        if (Array.isArray(data.staff) && data.staff.length > 0) {
-          // Match connected admin user or default to primary admin
-          const matchedUser = data.staff.find((s: any) => s.discordID === "884266375294636074") || data.staff[0];
-
-          // Ensure user has an authorized group/role
-          const userGroup = (matchedUser.groups || "Company").trim();
-          const isAuthorized = ["company", "admin", "adminnoob", "the company", "discord mod"].some(
-            r => userGroup.toLowerCase().includes(r)
-          );
-
-          if (isAuthorized) {
-            const staffObj = {
-              discordID: matchedUser.discordID || "884266375294636074",
-              lastName: matchedUser.lastName?.trim() || "noe_gt22",
-              groups: "Company"
-            };
-            setSelectedStaffUser(staffObj);
-            setAuthStep("verify");
-            setIsLoadingStaff(false);
-            sendCodeToDiscord(staffObj);
-            return;
-          }
-        }
-      }
-
-      // If validation fails
-      setAuthStep("denied");
-      setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
-    } catch (e) {
-      console.error("Error during Discord staff validation:", e);
-      setAuthStep("denied");
-      setErrorMsg("Error de conexión al verificar permisos. Intenta nuevamente.");
-    } finally {
-      setIsLoadingStaff(false);
-    }
+    const redirectUri = window.location.origin + window.location.pathname;
+    
+    // Official Discord OAuth2 Authorization URL
+    const discordOAuthUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify+guilds`;
+    window.location.href = discordOAuthUrl;
   };
 
   // Dispatch Message directly to Discord Webhook
-  const sendCodeToDiscord = async (user = selectedStaffUser) => {
+  const sendCodeToDiscord = async (user = discordUser) => {
     setState("sending");
     setErrorMsg(null);
     try {
@@ -109,11 +140,11 @@ export function AdminVerificationGate({
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setDevCode(code);
 
-      const username = user?.lastName?.trim() || adminName || "noe_gt22";
+      const username = user?.lastName?.trim() || user?.username || adminName;
       const discordId = user?.discordID || "884266375294636074";
       const userGroup = user?.groups || "Company";
 
-      // Exact Discord Rich Embed JSON Payload matching the user's screenshot
+      // Exact Discord Rich Embed JSON Payload matching user screenshot
       const embedPayload = {
         username: "Latam Company Administración",
         avatar_url: "https://thecompanydashboard.pages.dev/logo.png",
@@ -205,7 +236,7 @@ export function AdminVerificationGate({
       } else {
         setState("success");
         setTimeout(() => {
-          onSuccess(selectedStaffUser);
+          onSuccess(discordUser);
         }, 500);
       }
     }, 600);
@@ -283,6 +314,7 @@ export function AdminVerificationGate({
               onClick={() => {
                 setAuthStep("login");
                 setErrorMsg(null);
+                window.history.replaceState({}, document.title, window.location.pathname);
               }}
               className="w-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-5 py-3 text-xs font-mono font-bold uppercase tracking-wider text-white transition-colors cursor-pointer"
             >
@@ -307,7 +339,7 @@ export function AdminVerificationGate({
                 {state === "success" ? "Acceso Verificado" : "Código de Verificación 2FA"}
               </h1>
               <p className="mt-1.5 text-xs leading-relaxed text-[#C0B9AB]">
-                Hola <strong className="text-white font-bold">{selectedStaffUser?.lastName?.trim() || adminName}</strong>. Se ha enviado el mensaje con tu código de verificación a Discord.
+                Hola <strong className="text-white font-bold">{discordUser?.lastName?.trim() || discordUser?.username || adminName}</strong>. Se ha enviado el mensaje con tu código de verificación a Discord.
               </p>
             </div>
 
@@ -315,7 +347,7 @@ export function AdminVerificationGate({
             <div className="p-3.5 rounded-xl border border-[#F17633]/30 bg-[#F17633]/10 text-left space-y-1.5 font-mono text-[11px]">
               <div className="flex items-center justify-between text-slate-300">
                 <span>👤 Administrador:</span>
-                <span className="font-bold text-white">@{selectedStaffUser?.lastName?.trim() || adminName}</span>
+                <span className="font-bold text-white">@{discordUser?.lastName?.trim() || discordUser?.username || adminName}</span>
               </div>
               <div className="flex items-center justify-between text-slate-300">
                 <span>🌐 Dirección IP:</span>
