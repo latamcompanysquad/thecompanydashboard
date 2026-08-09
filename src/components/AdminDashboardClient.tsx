@@ -2156,8 +2156,8 @@ export function AdminDashboardClient({
               const fallback = ADMINS_PERFORMANCE_DATA.find((item) => item.steamID === s.steamID);
               return {
                 discord_id: s.discordID || fallback?.discord_id || "1496619805250420966",
-                name: s.lastName ? s.lastName.trim() : s.steamID,
-                handle: s.discordID ? `@${s.lastName.trim().replace(/[^a-zA-Z0-9_]/g, '')}` : "@SquadStaff",
+                name: s.discordName || (s.lastName ? s.lastName.trim() : s.steamID),
+                handle: s.discordHandle || (s.discordID ? `@${s.lastName.trim().replace(/[^a-zA-Z0-9_]/g, '')}` : "@SquadStaff"),
                 role: s.groups || "Admin",
                 steamID: s.steamID,
                 discordLinked: !!s.discordID,
