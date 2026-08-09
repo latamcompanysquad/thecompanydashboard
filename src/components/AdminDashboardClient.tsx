@@ -2596,6 +2596,28 @@ export function AdminDashboardClient({
                 // Generate dynamic rolling 30-day window ending at current date
                 const todayObj = new Date();
                 const monthNamesEs = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+                // Read saved daily peaks from localStorage to accumulate real historical record
+                let savedDailyPeaks: Record<string, { p: number; q: number }> = {};
+                try {
+                  const rawPeaks = localStorage.getItem("lc_concurrency_daily_peaks");
+                  if (rawPeaks) savedDailyPeaks = JSON.parse(rawPeaks);
+                } catch (e) {}
+
+                // Save today's highest peak in real-time
+                const todayISO = todayObj.toISOString().split('T')[0];
+                const prevTodayP = savedDailyPeaks[todayISO]?.p || 0;
+                const prevTodayQ = savedDailyPeaks[todayISO]?.q || 0;
+                if (livePlayers > prevTodayP || liveQueue > prevTodayQ) {
+                  savedDailyPeaks[todayISO] = {
+                    p: Math.max(prevTodayP, livePlayers),
+                    q: Math.max(prevTodayQ, liveQueue)
+                  };
+                  try {
+                    localStorage.setItem("lc_concurrency_daily_peaks", JSON.stringify(savedDailyPeaks));
+                  } catch (e) {}
+                }
+
                 const rolling30dData = Array.from({ length: 30 }).map((_, i) => {
                   const daysAgo = 29 - i;
                   const d = new Date(todayObj);
@@ -2603,9 +2625,14 @@ export function AdminDashboardClient({
 
                   const dayLabel = `${d.getDate().toString().padStart(2, '0')} ${monthNamesEs[d.getMonth()]}`;
                   const isToday = i === 29;
+                  const dateISO = d.toISOString().split('T')[0];
 
                   if (isToday) {
                     return { day: dayLabel, jugadores: livePlayers, cola: liveQueue };
+                  }
+
+                  if (savedDailyPeaks[dateISO]) {
+                    return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
                   }
 
                   const pseudoVar = ((d.getDate() * 7 + d.getMonth() * 11) % 16);
