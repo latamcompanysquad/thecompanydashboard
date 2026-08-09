@@ -49,3 +49,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #F17633;
 }
+
+/* JSVectorMap Tooltip Clean Override (Remove default blue outer box) */
+.jvm-tooltip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+}

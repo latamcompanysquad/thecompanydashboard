@@ -434,19 +434,21 @@ export const COUNTRY_TRAFFIC_TABLE = [
   { code: "US", flag: "🇺🇸", country: "United States", visits: "1,050", purchases: "Jugadores: 1%", change: "0.2%", isPositive: false },
 ];
 
-const COUNTRY_TOOLTIP_MAP: Record<string, { name: string; active: string; new: string }> = {
-  CN: { name: "China", active: "13.7", new: "0.1" },
-  US: { name: "United States", active: "10.0", new: "5.3" },
-  IN: { name: "India", active: "8.5", new: "5.3" },
-  BR: { name: "Brasil", active: "4.5", new: "2.5" },
-  DE: { name: "Germany", active: "3.7", new: "1.1" },
-  GB: { name: "United Kingdom", active: "2.1", new: "1.0" },
-  AR: { name: "Argentina", active: "18.4", new: "3.1" },
-  CL: { name: "Chile", active: "12.2", new: "1.8" },
-  UY: { name: "Uruguay", active: "6.4", new: "0.9" },
-  CO: { name: "Colombia", active: "8.1", new: "1.2" },
-  PE: { name: "Perú", active: "5.2", new: "0.7" },
-  MX: { name: "México", active: "4.1", new: "0.6" },
+const COUNTRY_TOOLTIP_MAP: Record<string, { name: string; flag: string; connections: string; community: string }> = {
+  AR: { name: "Argentina", flag: "🇦🇷", connections: "1,872", community: "38%" },
+  CL: { name: "Chile", flag: "🇨🇱", connections: "1,380", community: "28%" },
+  UY: { name: "Uruguay", flag: "🇺🇾", connections: "591", community: "12%" },
+  BR: { name: "Brasil", flag: "🇧🇷", connections: "443", community: "9%" },
+  CO: { name: "Colombia", flag: "🇨🇴", connections: "246", community: "5%" },
+  PE: { name: "Perú", flag: "🇵🇪", connections: "148", community: "3%" },
+  MX: { name: "México", flag: "🇲🇽", connections: "98", community: "2%" },
+  US: { name: "United States", flag: "🇺🇸", connections: "49", community: "1%" },
+  BO: { name: "Bolivia", flag: "🇧🇴", connections: "32", community: "0.6%" },
+  EC: { name: "Ecuador", flag: "🇪🇨", connections: "24", community: "0.5%" },
+  VE: { name: "Venezuela", flag: "🇻🇪", connections: "18", community: "0.4%" },
+  PY: { name: "Paraguay", flag: "🇵🇾", connections: "14", community: "0.3%" },
+  PA: { name: "Panamá", flag: "🇵🇦", connections: "10", community: "0.2%" },
+  ES: { name: "España", flag: "🇪🇸", connections: "8", community: "0.2%" },
 };
 
 const FINANCE_CASHFLOW = [
@@ -514,25 +516,25 @@ function PrelineRealJsVectorMap({ activeCountryCodes = ["AR", "CL", "UY", "BR", 
         const rawName = tooltip.text();
         if (data) {
           tooltip.text(
-            `<div style="padding: 10px 14px; background: #ffffff; color: #0f172a; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4); border: 1px solid #e2e8f0; font-family: system-ui, sans-serif; font-size: 11px; min-width: 130px;">
-              <div style="font-weight: 800; font-size: 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px;">
-                <span style="height: 8px; width: 8px; border-radius: 50%; background-color: #ef4444; display: inline-block;"></span>
+            `<div style="padding: 10px 14px; background: #ffffff; color: #0f172a; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; font-family: system-ui, sans-serif; font-size: 11px; min-width: 140px;">
+              <div style="font-weight: 800; font-size: 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; color: #1e293b;">
+                <span style="font-size: 14px;">${data.flag}</span>
                 <span>${data.name}</span>
               </div>
               <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 4px;">
-                <span style="color: #64748b; font-weight: 600;">Active:</span>
-                <span style="font-weight: 800; color: #1e293b; font-family: monospace;">${data.active} <span style="color: #10b981;">↗</span></span>
+                <span style="color: #64748b; font-weight: 600;">Conexiones:</span>
+                <span style="font-weight: 800; color: #F17633; font-family: monospace;">${data.connections}</span>
               </div>
               <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 2px;">
-                <span style="color: #64748b; font-weight: 600;">New:</span>
-                <span style="font-weight: 800; color: #1e293b; font-family: monospace;">${data.new} <span style="color: #ef4444;">↘</span></span>
+                <span style="color: #64748b; font-weight: 600;">Comunidad:</span>
+                <span style="font-weight: 800; color: #294C74; font-family: monospace;">${data.community}</span>
               </div>
             </div>`,
             true
           );
         } else {
           tooltip.text(
-            `<div style="padding: 6px 10px; background: #ffffff; color: #0f172a; border-radius: 8px; font-family: system-ui, sans-serif; font-size: 11px; font-weight: 700; border: 1px solid #e2e8f0;">${rawName}</div>`,
+            `<div style="padding: 8px 12px; background: #ffffff; color: #0f172a; border-radius: 10px; font-family: system-ui, sans-serif; font-size: 11px; font-weight: 700; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">${rawName}</div>`,
             true
           );
         }
