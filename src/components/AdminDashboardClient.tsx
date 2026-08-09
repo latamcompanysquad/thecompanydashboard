@@ -571,22 +571,22 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
     avgEngagement: string;
     isLive: boolean;
   }>({
-    totalPlayers: 54380,
-    newPlayers: 3301,
-    returningPlayers: 51079,
-    avgEngagement: "1h 45m",
+    totalPlayers: 4925,
+    newPlayers: 312,
+    returningPlayers: 4613,
+    avgEngagement: "55m",
     isLive: true,
   });
 
   const [liveCountryTable, setLiveCountryTable] = useState([
-    { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 18960, visits: "18,960", purchases: "Jugadores: 38%", change: "12.4%", isPositive: true },
-    { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 12584, visits: "12,584", purchases: "Jugadores: 25%", change: "8.2%", isPositive: true },
-    { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 6425, visits: "6,425", purchases: "Jugadores: 10%", change: "5.1%", isPositive: true },
-    { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 4512, visits: "4,512", purchases: "Jugadores: 8%", change: "2.3%", isPositive: false },
-    { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 4354, visits: "4,354", purchases: "Jugadores: 7%", change: "4.8%", isPositive: true },
-    { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 2950, visits: "2,950", purchases: "Jugadores: 5%", change: "1.9%", isPositive: true },
-    { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 2101, visits: "2,101", purchases: "Jugadores: 4%", change: "0.5%", isPositive: false },
-    { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 1089, visits: "1,089", purchases: "Jugadores: 2%", change: "0.2%", isPositive: false },
+    { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 1872, visits: "1,872", purchases: "Jugadores: 38%", change: "12.4%", isPositive: true },
+    { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 1380, visits: "1,380", purchases: "Jugadores: 28%", change: "8.2%", isPositive: true },
+    { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 591, visits: "591", purchases: "Jugadores: 12%", change: "5.1%", isPositive: true },
+    { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 443, visits: "443", purchases: "Jugadores: 9%", change: "2.3%", isPositive: false },
+    { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 246, visits: "246", purchases: "Jugadores: 5%", change: "4.8%", isPositive: true },
+    { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 148, visits: "148", purchases: "Jugadores: 3%", change: "1.9%", isPositive: true },
+    { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 98, visits: "98", purchases: "Jugadores: 2%", change: "0.5%", isPositive: false },
+    { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 49, visits: "49", purchases: "Jugadores: 1%", change: "0.2%", isPositive: false },
   ]);
 
   useEffect(() => {
@@ -597,11 +597,11 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
           fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/match")
         ]);
 
-        let playerTotal = 54380;
+        let baseTotal = 4925;
         if (topPlayersRes.ok) {
           const tpData = await topPlayersRes.json();
           if (Array.isArray(tpData.players) && tpData.players.length > 0) {
-            playerTotal = Math.max(54380, tpData.players.length * 543);
+            baseTotal = Math.max(4925, tpData.players.length * 492);
           }
         }
 
@@ -613,28 +613,27 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
           }
         }
 
-        const calculatedNew = 3301 + (livePlayersCount > 90 ? 12 : 0);
-        const calculatedReturning = playerTotal - calculatedNew;
+        const calculatedNew = 312 + (livePlayersCount > 90 ? 4 : 0);
+        const calculatedReturning = baseTotal - calculatedNew;
 
         setStatsData({
-          totalPlayers: playerTotal,
+          totalPlayers: baseTotal,
           newPlayers: calculatedNew,
           returningPlayers: calculatedReturning,
-          avgEngagement: "1h 45m",
+          avgEngagement: "55m",
           isLive: true,
         });
 
-        // Compute exact community percentage for top 8 countries dynamically
-        const totalConnections = 18960 + 12584 + 6425 + 4512 + 4354 + 2950 + 2101 + 1089;
+        const totalConns = 1872 + 1380 + 591 + 443 + 246 + 148 + 98 + 49;
         const updatedTable = [
-          { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 18960, visits: (18960).toLocaleString(), purchases: `Jugadores: ${Math.round((18960 / totalConnections) * 100)}%`, change: "12.4%", isPositive: true },
-          { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 12584, visits: (12584).toLocaleString(), purchases: `Jugadores: ${Math.round((12584 / totalConnections) * 100)}%`, change: "8.2%", isPositive: true },
-          { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 6425, visits: (6425).toLocaleString(), purchases: `Jugadores: ${Math.round((6425 / totalConnections) * 100)}%`, change: "5.1%", isPositive: true },
-          { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 4512, visits: (4512).toLocaleString(), purchases: `Jugadores: ${Math.round((4512 / totalConnections) * 100)}%`, change: "2.3%", isPositive: false },
-          { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 4354, visits: (4354).toLocaleString(), purchases: `Jugadores: ${Math.round((4354 / totalConnections) * 100)}%`, change: "4.8%", isPositive: true },
-          { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 2950, visits: (2950).toLocaleString(), purchases: `Jugadores: ${Math.round((2950 / totalConnections) * 100)}%`, change: "1.9%", isPositive: true },
-          { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 2101, visits: (2101).toLocaleString(), purchases: `Jugadores: ${Math.round((2101 / totalConnections) * 100)}%`, change: "0.5%", isPositive: false },
-          { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 1089, visits: (1089).toLocaleString(), purchases: `Jugadores: ${Math.round((1089 / totalConnections) * 100)}%`, change: "0.2%", isPositive: false },
+          { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 1872, visits: (1872).toLocaleString(), purchases: `Jugadores: ${Math.round((1872 / totalConns) * 100)}%`, change: "12.4%", isPositive: true },
+          { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 1380, visits: (1380).toLocaleString(), purchases: `Jugadores: ${Math.round((1380 / totalConns) * 100)}%`, change: "8.2%", isPositive: true },
+          { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 591, visits: (591).toLocaleString(), purchases: `Jugadores: ${Math.round((591 / totalConns) * 100)}%`, change: "5.1%", isPositive: true },
+          { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 443, visits: (443).toLocaleString(), purchases: `Jugadores: ${Math.round((443 / totalConns) * 100)}%`, change: "2.3%", isPositive: false },
+          { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 246, visits: (246).toLocaleString(), purchases: `Jugadores: ${Math.round((246 / totalConns) * 100)}%`, change: "4.8%", isPositive: true },
+          { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 148, visits: (148).toLocaleString(), purchases: `Jugadores: ${Math.round((148 / totalConns) * 100)}%`, change: "1.9%", isPositive: true },
+          { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 98, visits: (98).toLocaleString(), purchases: `Jugadores: ${Math.round((98 / totalConns) * 100)}%`, change: "0.5%", isPositive: false },
+          { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 49, visits: (49).toLocaleString(), purchases: `Jugadores: ${Math.round((49 / totalConns) * 100)}%`, change: "0.2%", isPositive: false },
         ].sort((a, b) => b.rawVisits - a.rawVisits).slice(0, 8);
 
         setLiveCountryTable(updatedTable);
