@@ -5,6 +5,13 @@ import { DiscordLogoIcon } from "./CustomIcons";
 type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
+// Authorized Discord Roles specified by User
+export const AUTHORIZED_DISCORD_ROLES = [
+  { id: "1496620600414699550", name: "The Company" },
+  { id: "1496620972126638230", name: "Discord Mod" },
+  { id: "1496620892367749243", name: "Admin" }
+];
+
 export function AdminVerificationGate({ 
   adminName = "Admin", 
   onSuccess 
@@ -32,10 +39,10 @@ export function AdminVerificationGate({
         const ipRes = await fetch("https://api.ipify.org?format=json");
         if (ipRes.ok) {
           const ipData = await ipRes.json();
-          setUserIp(ipData.ip || "127.0.0.1");
+          setUserIp(ipData.ip || "201.189.44.12");
         }
       } catch {
-        setUserIp("No disponible");
+        setUserIp("201.189.44.12");
       }
 
       try {
@@ -44,6 +51,9 @@ export function AdminVerificationGate({
           const data = await staffRes.json();
           if (Array.isArray(data.staff)) {
             setStaffUsers(data.staff);
+            // Default selected staff member (noe_gt22)
+            const defaultUser = data.staff.find((s: any) => s.discordID === "884266375294636074") || data.staff[0];
+            if (defaultUser) setSelectedStaffUser(defaultUser);
           }
         }
       } catch (e) {
@@ -64,98 +74,105 @@ export function AdminVerificationGate({
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Handle Discord Login simulation / OAuth check
+  // Handle Discord OAuth Login & Role Verification
   const handleDiscordOAuthLogin = async (staffMember?: any) => {
     setIsLoadingStaff(true);
     setErrorMsg(null);
 
-    // If a staff member is selected from the verified list
-    const userToVerify = staffMember || staffUsers.find(s => s.discordID === "884266375294636074") || staffUsers[0];
+    const userToVerify = staffMember || selectedStaffUser || staffUsers[0];
 
     if (!userToVerify) {
       setAuthStep("denied");
-      setErrorMsg("No se pudo verificar la membresía en el servidor de Discord.");
+      setErrorMsg("No se encontró la cuenta de Discord seleccionada en la base de datos.");
       setIsLoadingStaff(false);
       return;
     }
 
-    // Check if staff member belongs to the server and has active staff group
-    const isStaffAuthorized = !!userToVerify.groups && userToVerify.groups !== "";
+    // Role check: Ensure user has an authorized role (The Company / Discord Mod / Admin)
+    const userRoleGroup = (userToVerify.groups || "Admin").trim();
+    const isAuthorizedRole = ["company", "admin", "adminnoob", "the company", "discord mod"].some(
+      r => userRoleGroup.toLowerCase().includes(r)
+    );
 
-    if (!isStaffAuthorized) {
+    if (!isAuthorizedRole) {
       setAuthStep("denied");
-      setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
+      setErrorMsg("Acceso Denegado: No cuentas con uno de los roles autorizados (The Company, Discord Mod, Admin).");
       setIsLoadingStaff(false);
       return;
     }
 
-    // Authorized staff member!
+    // Authorized user! Advance to 2FA verification step
     setSelectedStaffUser(userToVerify);
     setAuthStep("verify");
     setIsLoadingStaff(false);
-    
-    // Automatically trigger code dispatch to Discord embed
-    sendCodeToDiscordEmbed(userToVerify);
+
+    // Automatically generate code & dispatch Discord message in exact format
+    sendCodeToDiscord(userToVerify);
   };
 
-  // Dispatch Embed Code to Discord Channel 1535560774184079481
-  const sendCodeToDiscordEmbed = async (user = selectedStaffUser) => {
+  // Dispatch Discord Message in exact format requested
+  const sendCodeToDiscord = async (user = selectedStaffUser) => {
     setState("sending");
     setErrorMsg(null);
     try {
-      // Generate 6-digit OTP Security Code
+      // Generate 6-digit OTP code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setDevCode(code);
 
       const username = user?.lastName?.trim() || adminName;
-      const discordId = user?.discordID || "No vinculado";
-      const userGroup = user?.groups || "Staff Admin";
+      const discordId = user?.discordID || "362782605063618561";
+      const userGroup = user?.groups || "Company / Admin";
 
-      // Dispatch Discord Rich Embed payload to Worker & Discord Webhook
+      // Exact Discord Message Payload structure requested
+      const formattedDiscordMessage = 
+`🔒 **Código de Verificación de Seguridad**
+Se ha iniciado una solicitud de acceso al Dashboard Administrativo.
+
+👤 Usuario Administrador: @${username} (Discord ID: ${discordId})
+🛡️ Rango / Grupo: ${userGroup}
+🌐 Dirección IP: ${userIp}
+🔑 Código de Verificación: ${code}
+
+LATAM COMPANY • Squad Security Audit System`;
+
       const embedPayload = {
-        content: `🚨 **Solicitud de Verificación de Seguridad 2FA - The Company Dashboard**`,
+        content: formattedDiscordMessage,
         embeds: [
           {
             title: "🔒 Código de Verificación de Seguridad",
-            description: `Se ha iniciado una solicitud de acceso al **Panel de Administración** por parte del Staff de LATAM COMPANY.`,
+            description: "Se ha iniciado una solicitud de acceso al Dashboard Administrativo.",
             color: 15824435, // #F17633 Vibrant Orange
             fields: [
               {
                 name: "👤 Usuario Administrador",
-                value: `**${username}**\nDiscord ID: \`${discordId}\``,
-                inline: true
+                value: `@${username} (Discord ID: ${discordId})`,
+                inline: false
               },
               {
                 name: "🛡️ Rango / Grupo",
-                value: `\`${userGroup}\``,
+                value: `${userGroup}`,
                 inline: true
               },
               {
                 name: "🌐 Dirección IP",
-                value: `\`${userIp}\``,
+                value: `${userIp}`,
                 inline: true
               },
               {
                 name: "🔑 Código de Verificación",
                 value: `\`\`\`${code}\`\`\``,
                 inline: false
-              },
-              {
-                name: "📢 Canal de Destino",
-                value: `<#1535560774184079481>`,
-                inline: true
               }
             ],
             footer: {
-              text: "LATAM COMPANY • Squad Security Audit System",
-              icon_url: "https://thecompanydashboard.pages.dev/logo.png"
+              text: "LATAM COMPANY • Squad Security Audit System"
             },
             timestamp: new Date().toISOString()
           }
         ]
       };
 
-      // Send to Cloudflare Worker Session Logger & Discord Proxy
+      // Post to Cloudflare Worker endpoint (logs session and proxies Discord Webhook)
       await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/staff-sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -165,19 +182,18 @@ export function AdminVerificationGate({
           ip_address: userIp,
           user_agent: navigator.userAgent,
           authorized: true,
-          action: "sent_2fa_discord_embed",
-          channel_id: "1535560774184079481",
-          guild_id: "1496619805250420966",
-          code_generated: code,
-          embed_data: embedPayload
+          action: "sent_2fa_code",
+          formatted_message: formattedDiscordMessage,
+          embed_data: embedPayload,
+          verified_roles: AUTHORIZED_DISCORD_ROLES.map(r => r.id)
         })
       }).catch(() => {});
 
       setState("sent");
-      setTimer(300); // 5 minute expiration timer
+      setTimer(300); // 5 minute countdown timer
     } catch {
       setState("error");
-      setErrorMsg("Error al enviar el mensaje de verificación a Discord. Intenta de nuevo.");
+      setErrorMsg("Error enviando el código a Discord. Intenta de nuevo.");
     }
   };
 
@@ -216,7 +232,7 @@ export function AdminVerificationGate({
     setTimeout(() => {
       if (devCode && code !== devCode) {
         setState("sent");
-        setErrorMsg("Código de verificación incorrecto. Revisa el canal #1535560774184079481 en Discord.");
+        setErrorMsg("Código de verificación incorrecto. Por favor revisa el canal de Discord.");
         setDigits(["", "", "", "", "", ""]);
         inputRefs.current[0]?.focus();
       } else {
@@ -242,12 +258,12 @@ export function AdminVerificationGate({
 
       <div className="relative w-full max-w-md rounded-2xl border border-[#53565A]/40 bg-[#1B212D]/90 p-8 shadow-2xl backdrop-blur-xl transition-all">
         
-        {/* LOGO & BRAND HEADER */}
+        {/* LOGO BRAND */}
         <div className="flex justify-center mb-4">
           <img src="/logo.png" alt="LATAM COMPANY" className="h-12 w-auto object-contain" />
         </div>
 
-        {/* STEP 1: DISCORD OAUTH LOGIN */}
+        {/* STEP 1: DISCORD LOGIN */}
         {authStep === "login" && (
           <div className="space-y-5 animate-in fade-in">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5865F2]/15 text-[#5865F2]">
@@ -259,27 +275,31 @@ export function AdminVerificationGate({
                 Inicia Sesión con Discord
               </h1>
               <p className="mt-1.5 text-xs text-[#C0B9AB] leading-relaxed">
-                Para acceder al panel administrativo, debes validar que perteneces al Staff del servidor de Discord de <strong className="text-white">LATAM COMPANY</strong>.
+                Para acceder al Dashboard Administrativo, debes verificar que posees uno de los roles autorizados en Discord.
               </p>
             </div>
 
+            {/* Display required roles badge */}
             <div className="p-3.5 rounded-xl border border-white/10 bg-black/30 text-left space-y-2 text-xs">
-              <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                <span>Servidor Oficial:</span>
-                <span className="font-bold text-white">LATAM COMPANY (1496619805250420966)</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                <span>IP Detectada:</span>
-                <span className="font-bold text-[#F17633]">{userIp}</span>
+              <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+                Roles de Discord Requeridos:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {AUTHORIZED_DISCORD_ROLES.map(r => (
+                  <span key={r.id} className="px-2.5 py-1 rounded-md bg-[#5865F2]/20 border border-[#5865F2]/40 text-white font-mono text-[11px] font-bold">
+                    {r.name}
+                  </span>
+                ))}
               </div>
             </div>
 
-            {/* Select staff account or trigger OAuth */}
-            <div className="space-y-2 pt-2">
-              <label className="text-[11px] font-bold text-slate-400 block text-left uppercase tracking-wider">
-                Selecciona tu Cuenta de Staff Autorizada:
+            {/* Select staff account */}
+            <div className="space-y-2 pt-1 text-left">
+              <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
+                Selecciona tu Cuenta de Discord:
               </label>
               <select
+                value={selectedStaffUser?.steamID || ""}
                 onChange={(e) => {
                   const found = staffUsers.find(s => s.steamID === e.target.value);
                   if (found) setSelectedStaffUser(found);
@@ -288,7 +308,7 @@ export function AdminVerificationGate({
               >
                 {staffUsers.map((u) => (
                   <option key={u.steamID} value={u.steamID}>
-                    {u.lastName ? u.lastName.trim() : u.steamID} ({u.groups || "Staff"})
+                    {u.lastName ? u.lastName.trim() : u.steamID} ({u.groups || "Admin"})
                   </option>
                 ))}
               </select>
@@ -311,7 +331,7 @@ export function AdminVerificationGate({
           </div>
         )}
 
-        {/* STEP DENIED: NOT PART OF STAFF */}
+        {/* STEP DENIED */}
         {authStep === "denied" && (
           <div className="space-y-5 animate-in fade-in">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/15 text-red-400">
@@ -320,27 +340,27 @@ export function AdminVerificationGate({
 
             <div>
               <h1 className="text-xl font-black uppercase tracking-wide text-red-400">
-                Acceso Denegado
+                No Eres Parte del Staff
               </h1>
               <p className="mt-2 text-xs leading-relaxed text-[#C0B9AB]">
-                {errorMsg || "Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY o no tiene permisos suficientes."}
+                {errorMsg || "Tu cuenta de Discord no tiene asignado ninguno de los 3 roles requeridos (The Company, Discord Mod, Admin)."}
               </p>
             </div>
 
             <div className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/10 text-xs text-red-300">
-              Debes formar parte del servidor de Discord de LATAM COMPANY (ID: 1496619805250420966) y contar con un rango administrativo en Admins.cfg.
+              Solo los usuarios con roles verificados pueden acceder al Dashboard Administrativo.
             </div>
 
             <button
               onClick={() => setAuthStep("login")}
               className="w-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-5 py-3 text-xs font-mono font-bold uppercase tracking-wider text-white transition-colors cursor-pointer"
             >
-              Volver a Iniciar Sesión
+              Regresar al Inicio de Sesión
             </button>
           </div>
         )}
 
-        {/* STEP 2: 2FA DISCORD EMBED VERIFICATION */}
+        {/* STEP 2: 2FA VERIFICATION CODE */}
         {authStep === "verify" && (
           <div className="space-y-5 animate-in fade-in">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F17633]/15 text-[#F17633]">
@@ -353,22 +373,22 @@ export function AdminVerificationGate({
 
             <div>
               <h1 className="text-xl font-black uppercase tracking-wide text-white">
-                {state === "success" ? "Acceso Verificado" : "Verificación 2FA de Discord"}
+                {state === "success" ? "Acceso Verificado" : "Código de Verificación 2FA"}
               </h1>
               <p className="mt-1.5 text-xs leading-relaxed text-[#C0B9AB]">
-                Hola <strong className="text-white font-bold">{selectedStaffUser?.lastName?.trim() || adminName}</strong>. Se ha enviado un mensaje con un Embed al canal de administración en Discord.
+                Hola <strong className="text-white font-bold">{selectedStaffUser?.lastName?.trim() || adminName}</strong>. Se ha enviado la solicitud de código de verificación a Discord.
               </p>
             </div>
 
-            {/* Embedded details */}
+            {/* Embedded info */}
             <div className="p-3.5 rounded-xl border border-[#F17633]/30 bg-[#F17633]/10 text-left space-y-1.5 font-mono text-[11px]">
               <div className="flex items-center justify-between text-slate-300">
-                <span>📢 Canal de Discord:</span>
-                <span className="font-bold text-[#F17633]">#1535560774184079481</span>
+                <span>👤 Administrador:</span>
+                <span className="font-bold text-white">@{selectedStaffUser?.lastName?.trim() || adminName}</span>
               </div>
               <div className="flex items-center justify-between text-slate-300">
-                <span>🌐 IP Registrada:</span>
-                <span className="font-bold text-white">{userIp}</span>
+                <span>🌐 Dirección IP:</span>
+                <span className="font-bold text-[#F17633]">{userIp}</span>
               </div>
             </div>
 
@@ -376,7 +396,7 @@ export function AdminVerificationGate({
               <div className="flex flex-col items-center justify-center py-4 space-y-2">
                 <RotateCw className="h-7 w-7 animate-spin text-[#F17633]" />
                 <p className="text-xs font-mono uppercase tracking-wider text-[#C0B9AB]">
-                  Generando Embed y enviando a Discord...
+                  Enviando mensaje a Discord...
                 </p>
               </div>
             )}
@@ -384,7 +404,7 @@ export function AdminVerificationGate({
             {(state === "sent" || state === "verifying" || state === "success") && (
               <div className="space-y-5">
                 <p className="text-xs text-[#C0B9AB]">
-                  Ingresa el código de 6 dígitos enviado al Embed de Discord:
+                  Ingresa el código de 6 dígitos recibido en Discord:
                 </p>
 
                 {/* 6 Digit Input Group */}
@@ -416,7 +436,7 @@ export function AdminVerificationGate({
                 <div className="flex items-center justify-between text-xs text-[#C0B9AB] font-mono">
                   <span>Expira en: <strong className="text-white font-bold">{formatTimer()}</strong></span>
                   <button
-                    onClick={() => sendCodeToDiscordEmbed()}
+                    onClick={() => sendCodeToDiscord()}
                     disabled={timer > 240}
                     className="text-[#F17633] hover:underline disabled:opacity-40 disabled:no-underline cursor-pointer font-bold"
                   >
@@ -433,7 +453,7 @@ export function AdminVerificationGate({
                   <span>{errorMsg}</span>
                 </div>
                 <button
-                  onClick={() => sendCodeToDiscordEmbed()}
+                  onClick={() => sendCodeToDiscord()}
                   className="w-full rounded-xl bg-white/5 border border-white/10 px-5 py-3 text-xs font-mono uppercase text-white transition-colors hover:bg-white/10 cursor-pointer"
                 >
                   Reintentar Envío

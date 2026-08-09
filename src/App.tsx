@@ -1,26 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AdminVerificationGate } from "./components/AdminVerificationGate";
 import { AdminDashboardClient } from "./components/AdminDashboardClient";
 
-const LOCAL_STORAGE_KEY = "lc_admin_authorized";
-
 export default function App() {
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(() => {
-    return localStorage.getItem(LOCAL_STORAGE_KEY) === "true";
-  });
-  const [activeAdminName, setActiveAdminName] = useState<string>(() => {
-    return localStorage.getItem("lc_admin_name") || "noe_gt22";
-  });
-
-  useEffect(() => {
-    if (isAuthorized) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, "true");
-      localStorage.setItem("lc_admin_name", activeAdminName);
-    } else {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-      localStorage.removeItem("lc_admin_name");
-    }
-  }, [isAuthorized, activeAdminName]);
+  // Always default to unauthorized on page load/reload
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [activeAdminName, setActiveAdminName] = useState<string>("noe_gt22");
 
   const handleSuccess = (staffUser?: any) => {
     if (staffUser && staffUser.lastName) {
