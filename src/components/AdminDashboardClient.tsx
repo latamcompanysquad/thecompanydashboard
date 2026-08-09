@@ -70,7 +70,7 @@ export function getDiscordAvatarUrl(discordId: string, avatarHash?: string | nul
 }
 
 // Datasets
-const SQUAD_CONCURRENCY_WAVE_DATA = [
+export const SQUAD_CONCURRENCY_WAVE_DATA = [
   { day: "01 Ago", jugadores: 12, cola: 0 },
   { day: "02 Ago", jugadores: 94, cola: 14 },
   { day: "03 Ago", jugadores: 98, cola: 22 },
@@ -565,22 +565,22 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
     avgEngagement: string;
     isLive: boolean;
   }>({
-    totalPlayers: 14850,
-    newPlayers: 890,
-    returningPlayers: 13960,
-    avgEngagement: "52m",
+    totalPlayers: 4925,
+    newPlayers: 312,
+    returningPlayers: 4613,
+    avgEngagement: "55m",
     isLive: true,
   });
 
   const [liveCountryTable, setLiveCountryTable] = useState([
-    { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 5643, visits: "5,643", purchases: "Jugadores: 38%", change: "12.4%", isPositive: true },
-    { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 4158, visits: "4,158", purchases: "Jugadores: 28%", change: "8.2%", isPositive: true },
-    { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 1782, visits: "1,782", purchases: "Jugadores: 12%", change: "5.1%", isPositive: true },
-    { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 1336, visits: "1,336", purchases: "Jugadores: 9%", change: "2.3%", isPositive: false },
-    { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 742, visits: "742", purchases: "Jugadores: 5%", change: "4.8%", isPositive: true },
-    { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 445, visits: "445", purchases: "Jugadores: 3%", change: "1.9%", isPositive: true },
-    { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 297, visits: "297", purchases: "Jugadores: 2%", change: "0.5%", isPositive: false },
-    { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 148, visits: "148", purchases: "Jugadores: 1%", change: "0.2%", isPositive: false },
+    { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 1872, visits: "1,872", purchases: "Jugadores: 38%", change: "12.4%", isPositive: true },
+    { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 1380, visits: "1,380", purchases: "Jugadores: 28%", change: "8.2%", isPositive: true },
+    { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 591, visits: "591", purchases: "Jugadores: 12%", change: "5.1%", isPositive: true },
+    { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 443, visits: "443", purchases: "Jugadores: 9%", change: "2.3%", isPositive: false },
+    { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 246, visits: "246", purchases: "Jugadores: 5%", change: "4.8%", isPositive: true },
+    { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 148, visits: "148", purchases: "Jugadores: 3%", change: "1.9%", isPositive: true },
+    { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 98, visits: "98", purchases: "Jugadores: 2%", change: "0.5%", isPositive: false },
+    { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 49, visits: "49", purchases: "Jugadores: 1%", change: "0.2%", isPositive: false },
   ]);
 
   useEffect(() => {
@@ -591,11 +591,11 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
           fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/match")
         ]);
 
-        let baseTotal = 14850;
+        let baseTotal = 4925;
         if (topPlayersRes.ok) {
           const tpData = await topPlayersRes.json();
           if (Array.isArray(tpData.players) && tpData.players.length > 0) {
-            baseTotal = Math.max(14850, tpData.players.length * 1485);
+            baseTotal = Math.max(4925, tpData.players.length * 492);
           }
         }
 
@@ -607,27 +607,27 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
           }
         }
 
-        const calculatedNew = 890 + (livePlayersCount > 90 ? 12 : 0);
+        const calculatedNew = 312 + (livePlayersCount > 90 ? 4 : 0);
         const calculatedReturning = baseTotal - calculatedNew;
 
         setStatsData({
           totalPlayers: baseTotal,
           newPlayers: calculatedNew,
           returningPlayers: calculatedReturning,
-          avgEngagement: "52m",
+          avgEngagement: "55m",
           isLive: true,
         });
 
-        const totalConns = 5643 + 4158 + 1782 + 1336 + 742 + 445 + 297 + 148;
+        const totalConns = 1872 + 1380 + 591 + 443 + 246 + 148 + 98 + 49;
         const updatedTable = [
-          { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 5643, visits: (5643).toLocaleString(), purchases: `Jugadores: ${Math.round((5643 / totalConns) * 100)}%`, change: "12.4%", isPositive: true },
-          { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 4158, visits: (4158).toLocaleString(), purchases: `Jugadores: ${Math.round((4158 / totalConns) * 100)}%`, change: "8.2%", isPositive: true },
-          { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 1782, visits: (1782).toLocaleString(), purchases: `Jugadores: ${Math.round((1782 / totalConns) * 100)}%`, change: "5.1%", isPositive: true },
-          { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 1336, visits: (1336).toLocaleString(), purchases: `Jugadores: ${Math.round((1336 / totalConns) * 100)}%`, change: "2.3%", isPositive: false },
-          { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 742, visits: (742).toLocaleString(), purchases: `Jugadores: ${Math.round((742 / totalConns) * 100)}%`, change: "4.8%", isPositive: true },
-          { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 445, visits: (445).toLocaleString(), purchases: `Jugadores: ${Math.round((445 / totalConns) * 100)}%`, change: "1.9%", isPositive: true },
-          { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 297, visits: (297).toLocaleString(), purchases: `Jugadores: ${Math.round((297 / totalConns) * 100)}%`, change: "0.5%", isPositive: false },
-          { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 148, visits: (148).toLocaleString(), purchases: `Jugadores: ${Math.round((148 / totalConns) * 100)}%`, change: "0.2%", isPositive: false },
+          { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 1872, visits: (1872).toLocaleString(), purchases: `Jugadores: ${Math.round((1872 / totalConns) * 100)}%`, change: "12.4%", isPositive: true },
+          { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 1380, visits: (1380).toLocaleString(), purchases: `Jugadores: ${Math.round((1380 / totalConns) * 100)}%`, change: "8.2%", isPositive: true },
+          { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 591, visits: (591).toLocaleString(), purchases: `Jugadores: ${Math.round((591 / totalConns) * 100)}%`, change: "5.1%", isPositive: true },
+          { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 443, visits: (443).toLocaleString(), purchases: `Jugadores: ${Math.round((443 / totalConns) * 100)}%`, change: "2.3%", isPositive: false },
+          { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 246, visits: (246).toLocaleString(), purchases: `Jugadores: ${Math.round((246 / totalConns) * 100)}%`, change: "4.8%", isPositive: true },
+          { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 148, visits: (148).toLocaleString(), purchases: `Jugadores: ${Math.round((148 / totalConns) * 100)}%`, change: "1.9%", isPositive: true },
+          { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 98, visits: (98).toLocaleString(), purchases: `Jugadores: ${Math.round((98 / totalConns) * 100)}%`, change: "0.5%", isPositive: false },
+          { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 49, visits: (49).toLocaleString(), purchases: `Jugadores: ${Math.round((49 / totalConns) * 100)}%`, change: "0.2%", isPositive: false },
         ].sort((a, b) => b.rawVisits - a.rawVisits).slice(0, 8);
 
         setLiveCountryTable(updatedTable);
@@ -902,95 +902,31 @@ function SalezyExactArcGauge({
 
 {/* DISCORD SERVER REPORT EMBED WIDGET */}
 function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
-  const [baseMatches, setBaseMatches] = useState<number>(346);
-  const [topMapsList, setTopMapsList] = useState<Array<{ map: string; matches: number }>>([
-    { map: "Narva", matches: 148 },
-    { map: "Mutaha", matches: 144 },
-    { map: "Fallujah", matches: 108 },
-    { map: "Yehorivka", matches: 100 },
-    { map: "Al Basrah", matches: 92 },
-    { map: "Black Coast", matches: 84 },
-    { map: "Gorodok", matches: 84 },
-    { map: "Manicouagan", matches: 84 },
-  ]);
-  const [topFactionsList, setTopFactionsList] = useState<Array<{ faction: string; wins: number; percent: number }>>([
-    { faction: "Armed Forces of Ukraine", wins: 332, percent: 24 },
-    { faction: "Western Private Military Contractors", wins: 280, percent: 20 },
-    { faction: "Russian Ground Forces", wins: 260, percent: 19 },
-    { faction: "Manticore Security Task Force", wins: 76, percent: 5 },
-    { faction: "21st Division", wins: 60, percent: 4 },
-    { faction: "3rd Division Battle Group", wins: 60, percent: 4 },
-    { faction: "58th Motorized Brigade", wins: 60, percent: 4 },
-    { faction: "11th Army Corps", wins: 56, percent: 4 },
-  ]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const realTotalMatches = Math.max(1420, baseMatches * 4);
-  const realTotalPlayers = Math.max(14850, Math.round(realTotalMatches * 10.45));
-  const realScoreboardSessions = Math.round(realTotalMatches * 90.3);
-
-  useEffect(() => {
-    async function fetchRealServerReports() {
-      setIsLoading(true);
-      try {
-        const [totalMatchesRes, topMapsRes, topFactionsRes] = await Promise.all([
-          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/total-matches"),
-          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-maps"),
-          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-factions")
-        ]);
-
-        let matchesCount = 346;
-        if (totalMatchesRes.ok) {
-          const tmData = await totalMatchesRes.json();
-          if (tmData.total) matchesCount = tmData.total;
-        }
-        setBaseMatches(matchesCount);
-
-        const computedMatches = Math.max(1420, matchesCount * 4);
-
-        if (topMapsRes.ok) {
-          const mapsData = await topMapsRes.json();
-          if (Array.isArray(mapsData.maps) && mapsData.maps.length > 0) {
-            setTopMapsList(mapsData.maps.map((m: any) => ({
-              map: m.map,
-              matches: Math.round(m.matches * 4)
-            })));
-          }
-        }
-
-        if (topFactionsRes.ok) {
-          const facData = await topFactionsRes.json();
-          if (Array.isArray(facData.factions) && facData.factions.length > 0) {
-            const formatted = facData.factions.map((f: any) => ({
-              faction: f.faction,
-              wins: Math.round(f.matches * 4),
-              percent: Math.round(((f.matches * 4) / computedMatches) * 100)
-            }));
-            setTopFactionsList(formatted);
-          }
-        }
-      } catch (e) {
-        console.warn("Using offline stats snapshot:", e);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchRealServerReports();
-    const interval = setInterval(fetchRealServerReports, 15000);
-    return () => clearInterval(interval);
-  }, []);
+  const [reportPeriod] = useState("29/05/2026 – 29/06/2026");
 
   const SUMMARY_KPI_CARDS = [
-    { title: "Jugadores Únicos Activos", value: realTotalPlayers.toLocaleString(), icon: Users, color: "#F17633", badge: "Población All-Time en BD" },
-    { title: "Partidas Completadas", value: realTotalMatches.toLocaleString(), icon: PlayCircle, color: "#294C74", badge: "Historial completo de matchs" },
+    { title: "Jugadores Únicos Activos", value: "4,925", icon: Users, color: "#F17633", badge: "Población mensual" },
+    { title: "Partidas Completadas", value: "350", icon: PlayCircle, color: "#294C74", badge: "Matchs finalizados" },
     { title: "Duración Promedio / Partida", value: "55m", icon: Clock, color: "#69989E", badge: "Tiempo medio por mapa" },
     { title: "Tiempo Juego Avg / Jugador", value: "5h 54m", icon: Award, color: "#A4C1A8", badge: "Permanencia por usuario" },
-    { title: "Sesiones en Scoreboards", value: realScoreboardSessions.toLocaleString(), icon: FileText, color: "#C4A78D", badge: "Registros de tabla final" },
-    { title: "Mapa Más Jugado", value: topMapsList[0]?.map || "Narva", icon: Globe, color: "#F17633", badge: `${topMapsList[0]?.matches || 148} partidas completadas` },
-    { title: "Layer Más Jugada", value: "Fallujah RAAS v1", icon: Shield, color: "#294C74", badge: "108 partidas registradas" },
+    { title: "Sesiones en Scoreboards", value: "31,602", icon: FileText, color: "#C4A78D", badge: "Registros de tabla final" },
+    { title: "Mapa Más Jugado", value: "Narva", icon: Globe, color: "#F17633", badge: "37 partidas completadas" },
+    { title: "Layer Más Jugada", value: "Fallujah RAAS v1", icon: Shield, color: "#294C74", badge: "27 partidas en el mes" },
     { title: "Hrs/Día con 50+ Jugadores", value: "7.1h", icon: Flame, color: "#F17633", badge: "Rango de alta concurrencia" },
     { title: "Partida Más Larga", value: "1h 54m", icon: Trophy, color: "#A4C1A8", badge: "Máximo récord en mapa" },
+  ];
+
+  const TEAM_VICTORIES = [
+    { faction: "49th Combined Arms Army", wins: 22, percent: 6 },
+    { faction: "Manticore Security Task Force", wins: 19, percent: 5 },
+    { faction: "21st Division", wins: 15, percent: 4 },
+    { faction: "3rd Division Battle Group", wins: 15, percent: 4 },
+    { faction: "58th Motorized Brigade", wins: 15, percent: 4 },
+    { faction: "11th Army Corps", wins: 14, percent: 4 },
+    { faction: "1st Infantry Division", wins: 13, percent: 4 },
+    { faction: "1st Separate Guards Brigade", wins: 12, percent: 3 },
+    { faction: "112th Medium Combined Arms Brigade", wins: 10, percent: 3 },
+    { faction: "Irregular Battle Group", wins: 10, percent: 3 },
   ];
 
   const TOP_HOURS_DATA = [
@@ -1030,24 +966,19 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
             <span className="p-2 rounded-xl bg-[#F17633]/15 text-[#F17633]">
               <BarChart2 className="h-5 w-5" />
             </span>
-            <h2 className="text-xl font-black tracking-tight">Reportes Administrativos del Servidor</h2>
+            <h2 className="text-xl font-black tracking-tight">Reportes de Servidor Discord</h2>
             <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-[#A4C1A8]/20 text-[#294C74] dark:text-[#A4C1A8]">
               ART (UTC-3)
             </span>
-            {isLoading && (
-              <span className="animate-pulse text-[10px] font-mono px-2 py-0.5 rounded bg-[#F17633]/20 text-[#F17633]">
-                Consultando BD en vivo...
-              </span>
-            )}
           </div>
           <p className="text-xs text-slate-400 font-medium">
-            Estadísticas agregadas en tiempo real de partidas completadas, victorias por facción, horas pico y heatmap de concurrencia.
+            Estadísticas agregadas de partidas completadas, victorias por facción, horas pico y heatmap de concurrencia.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono font-semibold px-3 py-1.5 rounded-xl border border-[#F17633]/40 bg-[#F17633]/10 text-[#F17633]">
-            📅 Historial Completo (All-Time Data)
+            📅 {reportPeriod}
           </span>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F17633] text-white font-bold text-xs hover:bg-[#d96222] transition-colors cursor-pointer shadow-xs">
             <Download className="h-4 w-4" />
@@ -1060,7 +991,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
       <div>
         <h3 className={`text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2 ${isDark ? "text-slate-300" : "text-[#294C74]"}`}>
           <FileText className="h-4 w-4 text-[#F17633]" />
-          <span>Resumen General de la Infraestructura</span>
+          <span>Resumen General del Período</span>
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1106,11 +1037,11 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
               <Trophy className="h-5 w-5 text-[#F17633]" />
               <h3 className="text-base font-bold">Victorias por Equipo (Facciones)</h3>
             </div>
-            <span className="text-xs font-mono font-bold text-slate-400">Total: {realTotalMatches.toLocaleString()} partidas</span>
+            <span className="text-xs font-mono font-bold text-slate-400">Total: 350 partidas</span>
           </div>
 
           <div className="space-y-3">
-            {topFactionsList.map((v, i) => (
+            {TEAM_VICTORIES.map((v, i) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs font-sans font-semibold">
                   <span className={isDark ? "text-slate-200" : "text-[#294C74]"}>{v.faction}</span>
@@ -1120,7 +1051,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
                   <div 
                     className="h-full rounded-full transition-all duration-500"
                     style={{ 
-                      width: `${(v.wins / (topFactionsList[0]?.wins || 1)) * 100}%`,
+                      width: `${(v.wins / 22) * 100}%`,
                       backgroundColor: i === 0 ? "#F17633" : i < 3 ? "#294C74" : "#69989E"
                     }}
                   />
@@ -2662,6 +2593,30 @@ export function AdminDashboardClient({
                   return { day: hourStr, jugadores: base.p, cola: base.q };
                 });
 
+                // Generate dynamic rolling 30-day window ending at today
+                const rolling30dData = Array.from({ length: 30 }).map((_, i) => {
+                  const pastDays = 29 - i;
+                  const d = new Date();
+                  d.setDate(d.getDate() - pastDays);
+                  
+                  const dayNum = d.getDate().toString().padStart(2, '0');
+                  const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+                  const monthStr = monthNames[d.getMonth()];
+                  const dateStr = `${dayNum} ${monthStr}`;
+                  const isToday = i === 29;
+
+                  if (isToday) {
+                    return { day: dateStr, jugadores: livePlayers, cola: liveQueue };
+                  }
+
+                  const dayOfWeek = d.getDay();
+                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                  const basePlayers = isWeekend ? Math.min(98, 92 + (i % 7)) : Math.min(98, 80 + (i % 12));
+                  const baseQueue = isWeekend ? Math.floor(14 + (i % 6)) : Math.floor(3 + (i % 5));
+
+                  return { day: dateStr, jugadores: basePlayers, cola: baseQueue };
+                });
+
                 return (
                   <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     
@@ -2717,7 +2672,7 @@ export function AdminDashboardClient({
                       <div className="h-64 w-full pt-2 relative">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart 
-                            data={chartView === "monthly" ? rolling24hData : SQUAD_CONCURRENCY_WAVE_DATA} 
+                            data={chartView === "monthly" ? rolling24hData : rolling30dData} 
                             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                           >
                             <defs>
