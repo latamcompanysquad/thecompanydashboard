@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --color-orange: #F17633;
+  --color-warm-gray: #C0B9AB;
+  --color-soft-cream: #E7E1DB;
+  --color-navy-blue: #294C74;
+  --color-sage-green: #A4C1A8;
+  --color-caramel-sand: #C4A78D;
+  --color-slate-cyan: #69989E;
+  --color-charcoal-slate: #53565A;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #E7E1DB;
+    color: #53565A;
+  }
+
+  body.dark,
+  html.dark body {
+    background-color: #151921;
+    color: #E7E1DB;
+  }
+}
+
+/* Custom scrollbars with new palette */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+::-webkit-scrollbar-thumb {
+  background: #C0B9AB;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #F17633;
+}
