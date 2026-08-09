@@ -2212,6 +2212,7 @@ export function AdminDashboardClient({
   }, [selectedStaffSteamID]);
 
   const isDark = theme === "dark";
+  const displayStaffList = liveStaffList.length > 0 ? liveStaffList : ADMINS_PERFORMANCE_DATA;
 
   // Filter logs by search query and category
   const filteredLogs = ADMIN_AUDIT_LOGS.filter((log) => {
@@ -2588,21 +2589,21 @@ export function AdminDashboardClient({
                 <div className="space-y-1.5 pt-3 border-t border-slate-200 dark:border-white/10">
                   <div className="flex items-center justify-between px-1 mb-1">
                     <span className="block font-sans text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      STAFF DISCORD ({ADMINS_PERFORMANCE_DATA.length})
+                      STAFF DISCORD ({displayStaffList.length})
                     </span>
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#5865F2]">
                       <DiscordLogoIcon size={12} color="#5865F2" /> Online
                     </span>
                   </div>
 
-                  {ADMINS_PERFORMANCE_DATA.map((adm) => {
-                    const avatarUrl = getDiscordAvatarUrl(adm.discord_id, adm.avatarHash);
+                  {displayStaffList.map((adm, idx) => {
+                    const avatarUrl = adm.discord_id ? getDiscordAvatarUrl(adm.discord_id, adm.avatarHash) : `https://cdn.discordapp.com/embed/avatars/${idx % 5}.png`;
                     return (
-                      <div key={adm.name} className="flex items-center justify-between px-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                      <div key={adm.name + idx} className="flex items-center justify-between px-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="relative shrink-0">
                             <img src={avatarUrl} alt={adm.name} className="h-6 w-6 rounded-full border border-white/10 object-cover" />
-                            <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 ${isDark ? "border-[#1B212D]" : "border-white"} ${adm.status === "online" ? "bg-[#A4C1A8]" : "bg-slate-400"}`} />
+                            <span className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 ${isDark ? "border-[#1B212D]" : "border-white"} ${adm.status === "online" ? "bg-[#A4C1A8]" : "bg-[#A4C1A8]"}`} />
                           </div>
                           <div className="flex flex-col truncate">
                             <span className={`text-[11px] font-bold truncate leading-tight ${isDark ? "text-slate-200" : "text-[#294C74]"}`}>{adm.name}</span>
