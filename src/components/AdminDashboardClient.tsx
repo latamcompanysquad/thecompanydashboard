@@ -982,6 +982,58 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
     }
   });
 
+  // Compute Peak Hour dynamically from TOP_HOURS_DATA[0]
+  const topHour = TOP_HOURS_DATA[0] || { hour: "20:00 ART", avg: 98 };
+
+  // Compute Peak Day dynamically from rawHeatmap
+  const DAY_NAMES: Record<string, string> = {
+    "Dom": "Domingo", "Lun": "Lunes", "Mar": "Martes", "Mié": "Miércoles",
+    "Jue": "Jueves", "Vie": "Viernes", "Sáb": "Sábado"
+  };
+
+  let peakDayKey = "Jue";
+  let maxDayAvg = 0;
+  if (rawHeatmap) {
+    Object.entries(rawHeatmap as Record<string, number[]>).forEach(([dKey, hArr]) => {
+      if (Array.isArray(hArr) && hArr.length > 0) {
+        const avg = hArr.reduce((a, b) => a + b, 0) / hArr.length;
+        if (avg > maxDayAvg) {
+          maxDayAvg = avg;
+          peakDayKey = dKey;
+        }
+      }
+    });
+  }
+  const peakDayName = DAY_NAMES[peakDayKey] || "Jueves";
+
+  // Compute Active Range (hours with avg >= 20) & Hrs/Day (50+ players)
+  let totalHoursAbove50Count = 0;
+  let activeStartHour = -1;
+  let activeEndHour = -1;
+
+  if (rawHeatmap) {
+    let dayCount = 0;
+    Object.values(rawHeatmap as Record<string, number[]>).forEach((hArr) => {
+      if (Array.isArray(hArr) && hArr.length === 24) {
+        dayCount++;
+        hArr.forEach((val, h) => {
+          if (val >= 50) totalHoursAbove50Count++;
+          if (val >= 20) {
+            if (activeStartHour === -1 || h < activeStartHour) activeStartHour = h;
+            if (h > activeEndHour) activeEndHour = h;
+          }
+        });
+      }
+    });
+    totalHoursAbove50Count = dayCount > 0 ? Math.round((totalHoursAbove50Count / dayCount) * 10) / 10 : 11;
+  } else {
+    totalHoursAbove50Count = 11;
+  }
+
+  const activeRangeText = (activeStartHour !== -1 && activeEndHour !== -1)
+    ? `${activeStartHour.toString().padStart(2, '0')}:00 – ${activeEndHour.toString().padStart(2, '0')}:59 ART`
+    : "12:00 – 02:00 ART";
+
   const getHeatmapColor = (val: number) => {
     if (val >= 85) return isDark ? "bg-[#F17633] text-white font-bold" : "bg-[#F17633] text-white font-bold";
     if (val >= 60) return isDark ? "bg-[#294C74] text-white font-bold" : "bg-[#294C74] text-white font-bold";
@@ -1110,25 +1162,25 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
           <div className="grid grid-cols-2 gap-3 font-sans text-xs">
             <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-0.5">
               <span className="text-[10px] text-slate-400 font-medium block">🔥 Hora Pico</span>
-              <span className="font-bold text-sm text-[#F17633] block">23:00 ART</span>
-              <span className="text-[10px] text-slate-400 block">96 jugadores avg</span>
+              <span className="font-bold text-sm text-[#F17633] block">{topHour.hour}</span>
+              <span className="text-[10px] text-slate-400 block">{topHour.avg} jugadores avg</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-0.5">
               <span className="text-[10px] text-slate-400 font-medium block">📅 Día Pico</span>
-              <span className="font-bold text-sm text-[#294C74] dark:text-white block">Viernes</span>
+              <span className="font-bold text-sm text-[#294C74] dark:text-white block">{peakDayName}</span>
               <span className="text-[10px] text-slate-400 block">Máxima concurrencia</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-0.5">
               <span className="text-[10px] text-slate-400 font-medium block">🟢 Rango Activo (20+)</span>
-              <span className="font-bold text-sm text-[#A4C1A8] block">15:00 – 23:59 ART</span>
+              <span className="font-bold text-sm text-[#A4C1A8] block">{activeRangeText}</span>
               <span className="text-[10px] text-slate-400 block">Horario de partida</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-0.5">
               <span className="text-[10px] text-slate-400 font-medium block">⏱️ Hrs/Día (50+ jug)</span>
-              <span className="font-bold text-sm text-[#69989E] block">7.1 hrs (avg)</span>
+              <span className="font-bold text-sm text-[#69989E] block">{totalHoursAbove50Count} hrs (avg)</span>
               <span className="text-[10px] text-slate-400 block">Servidor lleno</span>
             </div>
           </div>
