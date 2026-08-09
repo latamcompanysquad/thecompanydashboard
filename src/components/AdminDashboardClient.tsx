@@ -822,9 +822,18 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
 }
 
 {/* SALEZY SEGMENTED ARC RADIAL GAUGE */}
-function SalezyExactArcGauge({ isDark = false }: { isDark?: boolean }) {
+function SalezyExactArcGauge({ 
+  isDark = false,
+  currentPlayers = 98,
+  maxPlayers = 98 
+}: { 
+  isDark?: boolean;
+  currentPlayers?: number;
+  maxPlayers?: number;
+}) {
+  const capacityPercent = Math.min(100, Math.max(0, Math.round((currentPlayers / Math.max(1, maxPlayers)) * 100)));
   const totalSegments = 16;
-  const activeSegments = 11;
+  const activeSegments = Math.round((capacityPercent / 100) * totalSegments);
 
   const segments = Array.from({ length: totalSegments }).map((_, i) => {
     const angleStep = 180 / totalSegments;
@@ -832,9 +841,9 @@ function SalezyExactArcGauge({ isDark = false }: { isDark?: boolean }) {
     const endAngle = 180 - ((i + 1) * angleStep) + 2;
     const isActive = i < activeSegments;
 
-    let fillColor = isDark ? "rgba(255, 255, 255, 0.08)" : "#C0B9AB";
+    let fillColor = isDark ? "rgba(255, 255, 255, 0.1)" : "#D5CFCA";
     if (isActive) {
-      const ratio = i / activeSegments;
+      const ratio = i / totalSegments;
       if (ratio < 0.4) {
         fillColor = "#F17633";
       } else if (ratio < 0.8) {
@@ -848,7 +857,7 @@ function SalezyExactArcGauge({ isDark = false }: { isDark?: boolean }) {
   });
 
   return (
-    <div className="relative h-48 w-full flex flex-col items-center justify-center">
+    <div className="relative h-48 w-full flex flex-col items-center justify-center pt-2">
       <svg viewBox="0 0 200 120" className="w-full h-full max-h-[165px] overflow-visible">
         <g transform="translate(100, 105)">
           {segments.map((seg) => {
@@ -888,9 +897,10 @@ function SalezyExactArcGauge({ isDark = false }: { isDark?: boolean }) {
         </g>
       </svg>
 
-      <div className="absolute top-[42%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+      {/* Positioned cleanly BELOW the arc segments inside the inner arch */}
+      <div className="absolute top-[64%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
         <span className={`block text-3xl font-black font-sans tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
-          70.8%
+          {capacityPercent.toFixed(1)}%
         </span>
         <span className="block text-[11px] font-semibold text-[#F17633] mt-0.5">
           Capacidad del Servidor
@@ -2644,7 +2654,11 @@ export function AdminDashboardClient({
                     <MoreHorizontal className="h-4 w-4 text-slate-400 cursor-pointer" />
                   </div>
 
-                  <SalezyExactArcGauge isDark={isDark} />
+                  <SalezyExactArcGauge 
+                    isDark={isDark} 
+                    currentPlayers={liveMatchData?.players?.length ?? 98} 
+                    maxPlayers={98} 
+                  />
 
                   <div className="flex justify-between items-center text-xs pt-4 border-t border-slate-100 dark:border-white/5">
                     <div>
