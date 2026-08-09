@@ -944,14 +944,14 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
 
         if (topMapsRes.ok) {
           const mapsData = await topMapsRes.json();
-          if (Array.isArray(mapsData.maps)) {
+          if (Array.isArray(mapsData.maps) && mapsData.maps.length > 0) {
             setTopMapsList(mapsData.maps);
           }
         }
 
         if (topFactionsRes.ok) {
           const facData = await topFactionsRes.json();
-          if (Array.isArray(facData.factions)) {
+          if (Array.isArray(facData.factions) && facData.factions.length > 0) {
             const formatted = facData.factions.map((f: any) => ({
               faction: f.faction,
               wins: f.matches,
@@ -968,6 +968,8 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
     }
 
     fetchRealServerReports();
+    const interval = setInterval(fetchRealServerReports, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const SUMMARY_KPI_CARDS = [
