@@ -5,8 +5,8 @@ import { DiscordLogoIcon } from "./CustomIcons";
 type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
-// Official Discord OAuth & Webhook Credentials from .env.local
-const DISCORD_CLIENT_ID = "1507142513016963124";
+// Official Discord Webhook & Application Client Credentials
+const DISCORD_CLIENT_ID = "1497703071629971526";
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1497703071629971526/wZ1Na4Cjopatk1LyboZSKXyZ7C06birtxMS4LzfJZKe3oR1tM2hRr7_GcokwtykV-WVD";
 
 export function AdminVerificationGate({ 
@@ -126,7 +126,7 @@ export function AdminVerificationGate({
     setErrorMsg(null);
     const redirectUri = window.location.origin + window.location.pathname;
     
-    // Official Discord OAuth2 Authorization URL
+    // Official Discord OAuth2 Authorization URL with Webhook Application ID 1497703071629971526
     const discordOAuthUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify+guilds`;
     window.location.href = discordOAuthUrl;
   };
