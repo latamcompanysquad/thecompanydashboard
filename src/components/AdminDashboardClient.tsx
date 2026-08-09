@@ -2562,12 +2562,23 @@ export function AdminDashboardClient({
                       <h3 className={`text-base font-bold tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
                         Concurrencia de Jugadores y Cola de Espera ({chartView === "monthly" ? "Últimas 24 Horas" : "Últimos 30 Días"})
                       </h3>
-                      <div className="flex items-baseline gap-2 mt-1">
-                        <span className={`text-3xl font-black font-sans ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                          {liveMatchData?.players ? `${liveMatchData.players.length} Jugadores` : "98 Jugadores"}
-                        </span>
-                        <span className="inline-flex items-center gap-0.5 rounded-md bg-[#A4C1A8]/20 px-1.5 py-0.5 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8]">
-                          ↑ {liveMatchData?.players ? `${Math.min(100, Math.round((liveMatchData.players.length / 98) * 100))}% Capacidad` : "100% Capacidad"}
+                      <div className="flex items-center gap-4 mt-1">
+                        <div>
+                          <span className={`text-3xl font-black font-sans ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                            {liveMatchData?.players ? `${liveMatchData.players.length}` : "98"}
+                          </span>
+                          <span className="text-xs font-bold text-slate-400 ml-1">/ 98 En Servidor</span>
+                        </div>
+
+                        <div className="border-l border-slate-500/30 pl-3">
+                          <span className="text-xs font-bold text-[#F17633] block">
+                            +14 Jugadores en Cola
+                          </span>
+                          <span className="text-[10px] text-slate-400 block font-mono">Cola de Espera Activa</span>
+                        </div>
+
+                        <span className="inline-flex items-center gap-0.5 rounded-md bg-[#A4C1A8]/20 px-2 py-1 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8] ml-auto">
+                          ↑ 100% Capacidad Lleno
                         </span>
                       </div>
                     </div>
@@ -2660,23 +2671,31 @@ export function AdminDashboardClient({
                     maxPlayers={98} 
                   />
 
-                  <div className="flex justify-between items-center text-xs pt-4 border-t border-slate-100 dark:border-white/5">
+                  <div className="grid grid-cols-3 gap-2 text-xs pt-4 border-t border-slate-100 dark:border-white/5">
                     <div>
                       <span className="block text-slate-400 font-medium mb-0.5">Conectados</span>
-                      <strong className={`text-sm font-bold block ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                        98 / 98 Jugadores
+                      <strong className={`text-xs sm:text-sm font-bold block ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                        98 / 98
                       </strong>
-                      <div className="h-1 w-12 bg-[#F17633] rounded-full mt-1" />
+                      <div className="h-1 w-10 bg-[#F17633] rounded-full mt-1" />
                     </div>
+
+                    <div className="text-center">
+                      <span className="block text-slate-400 font-medium mb-0.5">En Cola</span>
+                      <strong className="text-xs sm:text-sm font-bold block text-[#F17633]">
+                        +14 Cola
+                      </strong>
+                      <div className="h-1 w-10 bg-[#294C74] rounded-full mt-1 mx-auto" />
+                    </div>
+
                     <div className="text-right">
-                      <span className="block text-slate-400 font-medium mb-0.5">Objetivo</span>
-                      <strong className={`text-sm font-bold block ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                        100.0% Lleno
+                      <span className="block text-slate-400 font-medium mb-0.5">Capacidad</span>
+                      <strong className={`text-xs sm:text-sm font-bold block ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                        100% Lleno
                       </strong>
                     </div>
                   </div>
                 </div>
-
               </div>
 
               {/* Bottom Moderation Audit Table */}
