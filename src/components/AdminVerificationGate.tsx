@@ -60,9 +60,9 @@ export function AdminVerificationGate({
           const profileData = await profileRes.json();
           const username = profileData.global_name || profileData.username || adminName;
 
-          // 2. Query Staff list from Cloudflare Worker to verify group permissions
+          // 2. Query Staff list from Cloudflare Worker to verify group & role permissions
           let userGroup = "Company";
-          let isAuthorized = true;
+          let isAuthorized = false;
 
           try {
             const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
@@ -72,11 +72,15 @@ export function AdminVerificationGate({
                 const matched = sData.staff.find((s: any) => s.discordID === profileData.id);
                 if (matched) {
                   userGroup = matched.groups || "Company";
+                  const groupLower = userGroup.toLowerCase();
+                  isAuthorized = ["company", "admin", "adminnoob", "the company", "discord mod", "mod"].some(
+                    r => groupLower.includes(r)
+                  );
                 }
               }
             }
           } catch (e) {
-            console.warn("Could not query staff worker, defaulting to Company:", e);
+            console.warn("Could not query staff worker:", e);
           }
 
           const userData = {
@@ -93,7 +97,7 @@ export function AdminVerificationGate({
             sendCodeToDiscord(userData);
           } else {
             setAuthStep("denied");
-            setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff.");
+            setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
           }
 
           // Clear URL hash cleanly
