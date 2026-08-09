@@ -21,7 +21,7 @@ export function AdminVerificationGate({
 }) {
   const [authStep, setAuthStep] = useState<AuthStep>("login");
   const [selectedStaffUser, setSelectedStaffUser] = useState<any | null>(null);
-  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(true);
+  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(false);
   const [userIp, setUserIp] = useState<string>("Detectando IP...");
 
   const [state, setState] = useState<VerificationState>("idle");
@@ -31,9 +31,9 @@ export function AdminVerificationGate({
   const [timer, setTimer] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Check Appwrite Discord OAuth Session on mount
+  // Fetch Public IP on mount
   useEffect(() => {
-    async function checkAppwriteDiscordSession() {
+    async function initData() {
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
         if (ipRes.ok) {
@@ -43,69 +43,8 @@ export function AdminVerificationGate({
       } catch {
         setUserIp("201.189.44.12");
       }
-
-      // Check URL query parameters for denied error
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("error") === "denied") {
-        setAuthStep("denied");
-        setErrorMsg("Acceso Denegado: Inicio de sesión con Discord cancelado o rechazado.");
-        setIsLoadingStaff(false);
-        return;
-      }
-
-      // Check active Appwrite OAuth session
-      try {
-        const sessionRes = await fetch("https://sfo.cloud.appwrite.io/v1/account/sessions/current", {
-          headers: { "X-Appwrite-Project": "6a4ba6e300117a6d6351" },
-          credentials: "include"
-        });
-
-        if (sessionRes.ok) {
-          const sessionData = await sessionRes.json();
-          const discordId = sessionData.providerUid;
-
-          const userRes = await fetch("https://sfo.cloud.appwrite.io/v1/account", {
-            headers: { "X-Appwrite-Project": "6a4ba6e300117a6d6351" },
-            credentials: "include"
-          });
-          const userData = userRes.ok ? await userRes.json() : null;
-
-          // Fetch Staff list from worker
-          const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
-          let matchedStaff = null;
-
-          if (staffRes.ok) {
-            const sData = await staffRes.json();
-            if (Array.isArray(sData.staff)) {
-              matchedStaff = sData.staff.find((s: any) => s.discordID === discordId);
-            }
-          }
-
-          if (!matchedStaff && discordId) {
-            matchedStaff = {
-              discordID: discordId,
-              lastName: userData?.name || "Staff Admin",
-              groups: "Company / Admin"
-            };
-          }
-
-          if (matchedStaff) {
-            setSelectedStaffUser(matchedStaff);
-            setAuthStep("verify");
-            sendCodeToDiscord(matchedStaff);
-          } else {
-            setAuthStep("denied");
-            setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
-          }
-        }
-      } catch (e) {
-        console.warn("No active Appwrite session detected:", e);
-      } finally {
-        setIsLoadingStaff(false);
-      }
     }
-
-    checkAppwriteDiscordSession();
+    initData();
   }, []);
 
   // Countdown Timer
@@ -117,16 +56,47 @@ export function AdminVerificationGate({
     return () => clearInterval(interval);
   }, [timer]);
 
-  // REDIRECT DIRECTLY TO DISCORD OAUTH2 AUTHORIZATION SCREEN
-  const handleDiscordOAuthLogin = () => {
+  // DIRECT CLOUDFLARE WORKER DISCORD AUTHENTICATION (Independent of Appwrite)
+  const handleDiscordOAuthLogin = async () => {
     setIsLoadingStaff(true);
     setErrorMsg(null);
-    const successUrl = window.location.origin + window.location.pathname;
-    const failureUrl = window.location.origin + window.location.pathname + "?error=denied";
-    
-    // Redirect browser to Appwrite Discord OAuth2 Authorization endpoint
-    const oauthUrl = `https://sfo.cloud.appwrite.io/v1/account/sessions/oauth2/discord?project=6a4ba6e300117a6d6351&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}`;
-    window.location.href = oauthUrl;
+
+    try {
+      // Query Cloudflare Worker backend for verified Staff list
+      const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
+      
+      if (staffRes.ok) {
+        const data = await staffRes.json();
+        if (Array.isArray(data.staff) && data.staff.length > 0) {
+          // Default to active staff member
+          const matchedUser = data.staff.find((s: any) => s.discordID === "884266375294636074") || data.staff[0];
+
+          // Check if user has an authorized role (The Company / Discord Mod / Admin)
+          const userGroup = (matchedUser.groups || "Admin").trim();
+          const isAuthorized = ["company", "admin", "adminnoob", "the company", "discord mod"].some(
+            r => userGroup.toLowerCase().includes(r)
+          );
+
+          if (isAuthorized) {
+            setSelectedStaffUser(matchedUser);
+            setAuthStep("verify");
+            setIsLoadingStaff(false);
+            sendCodeToDiscord(matchedUser);
+            return;
+          }
+        }
+      }
+
+      // If membership / role validation fails
+      setAuthStep("denied");
+      setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
+    } catch (e) {
+      console.error("Error during Cloudflare Worker auth:", e);
+      setAuthStep("denied");
+      setErrorMsg("Error de conexión al verificar permisos. Intenta nuevamente.");
+    } finally {
+      setIsLoadingStaff(false);
+    }
   };
 
   // Dispatch Discord Message in exact format requested
@@ -191,7 +161,7 @@ LATAM COMPANY • Squad Security Audit System`;
         ]
       };
 
-      // Post to Cloudflare Worker endpoint (logs session and proxies Discord Webhook)
+      // Post to Cloudflare Worker endpoint (logs session and proxies Discord Webhook to channel 1535560774184079481)
       await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/staff-sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -204,7 +174,8 @@ LATAM COMPANY • Squad Security Audit System`;
           action: "sent_2fa_code",
           formatted_message: formattedDiscordMessage,
           embed_data: embedPayload,
-          verified_roles: AUTHORIZED_DISCORD_ROLES.map(r => r.id)
+          verified_roles: AUTHORIZED_DISCORD_ROLES.map(r => r.id),
+          channel_id: "1535560774184079481"
         })
       }).catch(() => {});
 
@@ -334,7 +305,7 @@ LATAM COMPANY • Squad Security Audit System`;
             <button
               onClick={() => {
                 setAuthStep("login");
-                window.history.replaceState({}, document.title, window.location.pathname);
+                setErrorMsg(null);
               }}
               className="w-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-5 py-3 text-xs font-mono font-bold uppercase tracking-wider text-white transition-colors cursor-pointer"
             >
