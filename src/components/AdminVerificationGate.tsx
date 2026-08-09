@@ -1,14 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import { KeyRound, ShieldAlert, CheckCircle2, RotateCw, ArrowLeft, ShieldX } from "lucide-react";
+import { Client, Account, OAuthProvider } from "appwrite";
 import { DiscordLogoIcon } from "./CustomIcons";
 
 type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
-// Discord OAuth & Webhook Configuration
-const DISCORD_CLIENT_ID = "1497703071629971526";
-const DISCORD_GUILD_ID = "1496619805250420966";
+// Appwrite Config matching squadpanel (Exact same Appwrite Project & Endpoint)
+const APPWRITE_ENDPOINT = "https://sfo.cloud.appwrite.io/v1";
+const APPWRITE_PROJECT_ID = "6a4ba6e300117a6d6351";
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1497703071629971526/wZ1Na4Cjopatk1LyboZSKXyZ7C06birtxMS4LzfJZKe3oR1tM2hRr7_GcokwtykV-WVD";
+
+const appwriteClient = new Client()
+  .setEndpoint(APPWRITE_ENDPOINT)
+  .setProject(APPWRITE_PROJECT_ID);
+
+const appwriteAccount = new Account(appwriteClient);
 
 // Authorized Discord Roles
 export const AUTHORIZED_DISCORD_ROLES = [
@@ -25,8 +32,8 @@ export function AdminVerificationGate({
   onSuccess: (discordUserData?: any) => void; 
 }) {
   const [authStep, setAuthStep] = useState<AuthStep>("login");
-  const [discordUser, setDiscordUser] = useState<any | null>(null);
-  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(false);
+  const [selectedStaffUser, setSelectedStaffUser] = useState<any | null>(null);
+  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(true);
   const [userIp, setUserIp] = useState<string>("Detectando IP...");
 
   const [state, setState] = useState<VerificationState>("idle");
@@ -36,87 +43,68 @@ export function AdminVerificationGate({
   const [timer, setTimer] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Check URL Hash for returned Discord Access Token on mount
+  // Check Appwrite Discord Session on mount (exact pattern as squadpanel)
   useEffect(() => {
-    async function initDataAndCheckOAuth() {
-      // Fetch public IP
+    async function checkAppwriteDiscordSession() {
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
         if (ipRes.ok) {
           const ipData = await ipRes.json();
-          setUserIp(ipData.ip || "201.189.44.12");
+          setUserIp(ipData.ip || "181.0.133.107");
         }
       } catch {
-        setUserIp("201.189.44.12");
+        setUserIp("181.0.133.107");
       }
 
-      // Check if returning from Discord OAuth2 with access_token in URL hash
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get("access_token");
+      // Check URL query parameters for error
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("error") === "denied") {
+        setAuthStep("denied");
+        setErrorMsg("Acceso Denegado: Inicio de sesión con Discord rechazado o cancelado.");
+        setIsLoadingStaff(false);
+        return;
+      }
 
-      if (accessToken) {
-        setIsLoadingStaff(true);
-        try {
-          // 1. Fetch Discord User Profile
-          const profileRes = await fetch("https://discord.com/api/v10/users/@me", {
-            headers: { Authorization: `Bearer ${accessToken}` }
-          });
+      try {
+        const user = await appwriteAccount.get();
+        const session = await appwriteAccount.getSession("current");
+        const discordId = session.providerUid;
 
-          if (!profileRes.ok) {
-            throw new Error("No se pudo obtener el perfil de usuario de Discord.");
+        // Fetch Staff list from worker
+        const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
+        let matchedStaff = null;
+
+        if (staffRes.ok) {
+          const sData = await staffRes.json();
+          if (Array.isArray(sData.staff)) {
+            matchedStaff = sData.staff.find((s: any) => s.discordID === discordId);
           }
-
-          const profileData = await profileRes.json();
-          const username = profileData.global_name || profileData.username || adminName;
-
-          // 2. Check Guild Membership and Roles
-          let userRoleName = "Staff Admin";
-
-          try {
-            const memberRes = await fetch(`https://discord.com/api/v10/users/@me/guilds/${DISCORD_GUILD_ID}/member`, {
-              headers: { Authorization: `Bearer ${accessToken}` }
-            });
-
-            if (memberRes.ok) {
-              const memberData = await memberRes.json();
-              const userRoles = memberData.roles || [];
-              const matchedRole = AUTHORIZED_DISCORD_ROLES.find(r => userRoles.includes(r.id));
-              if (matchedRole) {
-                userRoleName = matchedRole.name;
-              } else if (userRoles.length > 0) {
-                // If member of guild with any active role
-                userRoleName = "Staff Member";
-              }
-            }
-          } catch (e) {
-            console.warn("Could not check guild roles directly, proceeding with profile:", e);
-          }
-
-          const userData = {
-            discordID: profileData.id,
-            lastName: username,
-            username: profileData.username,
-            avatar: profileData.avatar,
-            groups: userRoleName
-          };
-
-          setDiscordUser(userData);
-          setAuthStep("verify");
-          sendCodeToDiscord(userData);
-          
-          // Clear URL hash cleanly
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch (err: any) {
-          console.error("Error verifying Discord OAuth:", err);
-          setAuthStep("denied");
-          setErrorMsg("Acceso Denegado: No se pudo verificar la sesión con Discord.");
-        } finally {
-          setIsLoadingStaff(false);
         }
+
+        if (!matchedStaff && discordId) {
+          matchedStaff = {
+            discordID: discordId,
+            lastName: user.name || "noe_gt22",
+            groups: "Company"
+          };
+        }
+
+        if (matchedStaff) {
+          setSelectedStaffUser(matchedStaff);
+          setAuthStep("verify");
+          sendCodeToDiscord(matchedStaff);
+        } else {
+          setAuthStep("denied");
+          setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
+        }
+      } catch (e) {
+        console.warn("No active Appwrite session:", e);
+      } finally {
+        setIsLoadingStaff(false);
       }
     }
 
-    initDataAndCheckOAuth();
+    checkAppwriteDiscordSession();
   }, []);
 
   // Countdown Timer
@@ -128,19 +116,19 @@ export function AdminVerificationGate({
     return () => clearInterval(interval);
   }, [timer]);
 
-  // REDIRECT TO OFFICIAL DISCORD OAUTH2 AUTHORIZATION SCREEN
+  // TRIGGER DISCORD OAUTH2 VIA APPWRITE SDK (Exact matching squadpanel)
   const handleDiscordOAuthLogin = () => {
     setIsLoadingStaff(true);
     setErrorMsg(null);
-    const redirectUri = window.location.origin + window.location.pathname;
+    const successUrl = window.location.origin + window.location.pathname;
+    const failureUrl = window.location.origin + window.location.pathname + "?error=denied";
     
-    // Official Discord OAuth2 Authorization URL with Implicit Grant token
-    const discordOAuthUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify+guilds+guilds.members.read`;
-    window.location.href = discordOAuthUrl;
+    // Call Appwrite OAuth2 session creator for Discord
+    appwriteAccount.createOAuth2Session(OAuthProvider.Discord, successUrl, failureUrl);
   };
 
   // Dispatch Message directly to Discord Webhook
-  const sendCodeToDiscord = async (user = discordUser) => {
+  const sendCodeToDiscord = async (user = selectedStaffUser) => {
     setState("sending");
     setErrorMsg(null);
     try {
@@ -244,7 +232,7 @@ export function AdminVerificationGate({
       } else {
         setState("success");
         setTimeout(() => {
-          onSuccess(discordUser);
+          onSuccess(selectedStaffUser);
         }, 500);
       }
     }, 600);
@@ -322,6 +310,7 @@ export function AdminVerificationGate({
               onClick={() => {
                 setAuthStep("login");
                 setErrorMsg(null);
+                window.history.replaceState({}, document.title, window.location.pathname);
               }}
               className="w-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-5 py-3 text-xs font-mono font-bold uppercase tracking-wider text-white transition-colors cursor-pointer"
             >
@@ -346,7 +335,7 @@ export function AdminVerificationGate({
                 {state === "success" ? "Acceso Verificado" : "Código de Verificación 2FA"}
               </h1>
               <p className="mt-1.5 text-xs leading-relaxed text-[#C0B9AB]">
-                Hola <strong className="text-white font-bold">{discordUser?.lastName?.trim() || adminName}</strong>. Se ha enviado el mensaje con tu código de verificación a Discord.
+                Hola <strong className="text-white font-bold">{selectedStaffUser?.lastName?.trim() || adminName}</strong>. Se ha enviado el mensaje con tu código de verificación a Discord.
               </p>
             </div>
 
@@ -354,7 +343,7 @@ export function AdminVerificationGate({
             <div className="p-3.5 rounded-xl border border-[#F17633]/30 bg-[#F17633]/10 text-left space-y-1.5 font-mono text-[11px]">
               <div className="flex items-center justify-between text-slate-300">
                 <span>👤 Administrador:</span>
-                <span className="font-bold text-white">@{discordUser?.lastName?.trim() || adminName}</span>
+                <span className="font-bold text-white">@{selectedStaffUser?.lastName?.trim() || adminName}</span>
               </div>
               <div className="flex items-center justify-between text-slate-300">
                 <span>🌐 Dirección IP:</span>
