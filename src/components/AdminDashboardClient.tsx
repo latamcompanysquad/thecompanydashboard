@@ -65,7 +65,10 @@ export function getDiscordAvatarUrl(discordId: string, avatarHash?: string | nul
   if (discordId && avatarHash) {
     return `https://cdn.discordapp.com/avatars/${discordId}/${avatarHash}.png?size=128`;
   }
-  const defaultIdx = Math.abs(parseInt(discordId.slice(-4)) || 0) % 5;
+  if (discordId && /^\d{17,20}$/.test(discordId)) {
+    return `https://unavatar.io/discord/${discordId}`;
+  }
+  const defaultIdx = Math.abs(parseInt((discordId || "").slice(-4)) || 0) % 5;
   return `https://cdn.discordapp.com/embed/avatars/${defaultIdx}.png`;
 }
 
