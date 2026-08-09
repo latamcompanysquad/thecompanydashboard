@@ -459,7 +459,7 @@ const FINANCE_CASHFLOW = [
 ];
 
 {/* OFFICIAL PRELINE REAL VECTOR MAP COMPONENT USING JSVECTORMAP */}
-function PrelineRealJsVectorMap() {
+function PrelineRealJsVectorMap({ activeCountryCodes = ["AR", "CL", "UY", "BR", "CO", "PE", "MX", "US", "BO", "EC", "VE", "PY"] }: { activeCountryCodes?: string[] }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
@@ -471,6 +471,11 @@ function PrelineRealJsVectorMap() {
         mapInstanceRef.current.destroy();
       } catch (e) {}
     }
+
+    const seriesValues: Record<string, string> = {};
+    activeCountryCodes.forEach((code) => {
+      seriesValues[code] = "active";
+    });
 
     mapInstanceRef.current = new jsVectorMap({
       selector: mapContainerRef.current,
@@ -494,27 +499,14 @@ function PrelineRealJsVectorMap() {
           fill: "#F17633"
         }
       },
-      selectedRegions: ["US", "IN", "CN", "BR", "DE", "GB", "AR", "CL", "UY", "CO", "PE", "MX"],
+      selectedRegions: activeCountryCodes,
       regionSeries: {
         fill: {
           scale: {
-            active: "#294C74",
+            active: "#F17633",
             default: "#53565A"
           },
-          values: {
-            US: "active",
-            IN: "active",
-            CN: "active",
-            BR: "active",
-            DE: "active",
-            GB: "active",
-            AR: "active",
-            CL: "active",
-            UY: "active",
-            CO: "active",
-            PE: "active",
-            MX: "active"
-          }
+          values: seriesValues
         }
       },
       onRegionTooltipShow(_event: any, tooltip: any, code: string) {
@@ -554,7 +546,7 @@ function PrelineRealJsVectorMap() {
         } catch (e) {}
       }
     };
-  }, []);
+  }, [activeCountryCodes]);
 
   return <div ref={mapContainerRef} className="h-[400px] w-full overflow-hidden" />;
 }
@@ -756,7 +748,7 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
         
         {/* Left 7 Cols: Real Expansive JSVectorMap World Vector Map */}
         <div className="lg:col-span-7 relative h-[400px] w-full flex items-center justify-center">
-          <PrelineRealJsVectorMap />
+          <PrelineRealJsVectorMap activeCountryCodes={liveCountryTable.map((c) => c.code)} />
 
           <div className={`absolute bottom-2 left-2 border px-3 py-1.5 rounded-lg text-[10px] font-mono pointer-events-none ${
             isDark ? "bg-black/80 border-white/10 text-slate-300" : "bg-[#294C74]/90 border-[#C0B9AB]/40 text-white shadow-xs"
