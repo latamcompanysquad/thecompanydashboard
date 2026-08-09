@@ -5,8 +5,8 @@ import { DiscordLogoIcon } from "./CustomIcons";
 type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
-// Discord OAuth & Webhook Configuration found in repository
-const DISCORD_CLIENT_ID = "1496619805250420966";
+// Discord OAuth & Webhook Configuration
+const DISCORD_CLIENT_ID = "1497703071629971526";
 const DISCORD_GUILD_ID = "1496619805250420966";
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1497703071629971526/wZ1Na4Cjopatk1LyboZSKXyZ7C06birtxMS4LzfJZKe3oR1tM2hRr7_GcokwtykV-WVD";
 
