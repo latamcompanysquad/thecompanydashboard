@@ -2558,7 +2558,6 @@ export function AdminDashboardClient({
                 const maxPlayers = liveMatchData?.publicSlots ?? 98;
                 const rawQueue = (liveMatchData?.publicQueue ?? 0) + (liveMatchData?.reserveQueue ?? 0);
                 const liveQueue = rawQueue > 0 ? rawQueue : (livePlayers >= 90 ? 2 : 0);
-                const liveLayer = liveMatchData?.layer || "Goose Bay AAS v1";
                 const capacityPercentage = Math.min(100, Math.round((livePlayers / Math.max(1, maxPlayers)) * 100));
 
                 return (
@@ -2580,15 +2579,6 @@ export function AdminDashboardClient({
                                 {livePlayers}
                               </span>
                               <span className="text-xs font-bold text-slate-400 ml-1">/ {maxPlayers} En Servidor</span>
-                            </div>
-
-                            <div className="border-l border-slate-500/30 pl-3">
-                              <span className="text-xs font-bold text-[#F17633] block font-mono">
-                                +{liveQueue} en cola de espera
-                              </span>
-                              <span className="text-[10px] text-slate-400 block font-sans truncate max-w-[220px]" title={liveLayer}>
-                                🎮 {liveLayer}
-                              </span>
                             </div>
 
                             <span className="inline-flex items-center gap-1 rounded-md bg-[#A4C1A8]/20 px-2.5 py-1 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8] ml-auto font-mono">
