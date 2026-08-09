@@ -150,25 +150,33 @@ export function AdminVerificationGate({
 
       const username = user?.lastName?.trim() || adminName;
       const discordId = user?.discordID || "884266375294636074";
-      const userGroup = user?.groups || "Company / Admin";
+      const userGroup = user?.groups || "Company";
 
-      // Exact Discord Message Payload structure requested by User
-      const formattedDiscordMessage = 
-`🔒 **Código de Verificación de Seguridad**
-Se ha iniciado una solicitud de acceso al Dashboard Administrativo.
-
-👤 Usuario Administrador: @${username} (Discord ID: ${discordId})
-🛡️ Rango / Grupo: ${userGroup}
-🌐 Dirección IP: ${userIp}
-🔑 Código de Verificación: ${code}
-
-LATAM COMPANY • Squad Security Audit System`;
+      // Exact Discord Rich Embed JSON Payload matching the user's screenshot
+      const embedPayload = {
+        username: "Latam Company Administración",
+        avatar_url: "https://thecompanydashboard.pages.dev/logo.png",
+        embeds: [
+          {
+            title: "Código de Verificación 2FA",
+            description: `*Se ha iniciado una solicitud de acceso al Dashboard Administrativo.*\n\n**Código de Verificación: ${code}**\n\n*Usuario Administrador:* **${username}**\n*Grupo:* **${userGroup}**\n*Dirección IP:* **${userIp}**`,
+            color: 39423, // #0099FF Blue Accent line
+            thumbnail: {
+              url: "https://thecompanydashboard.pages.dev/logo.png"
+            },
+            footer: {
+              text: "LATAM COMPANY • Squad Security Audit System",
+              icon_url: "https://thecompanydashboard.pages.dev/logo.png"
+            }
+          }
+        ]
+      };
 
       // 1. Post DIRECTLY to the Discord Webhook URL provided by User
       await fetch(DISCORD_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: formattedDiscordMessage })
+        body: JSON.stringify(embedPayload)
       });
 
       // 2. Log session to Cloudflare Worker
@@ -181,8 +189,8 @@ LATAM COMPANY • Squad Security Audit System`;
           ip_address: userIp,
           user_agent: navigator.userAgent,
           authorized: true,
-          action: "sent_2fa_webhook",
-          formatted_message: formattedDiscordMessage
+          action: "sent_2fa_webhook_embed",
+          embed_data: embedPayload
         })
       }).catch(() => {});
 
