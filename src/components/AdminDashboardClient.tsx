@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import jsVectorMap from "jsvectormap";
 import "jsvectormap/dist/maps/world-merc.js";
 import "jsvectormap/dist/jsvectormap.css";
@@ -903,31 +903,72 @@ function SalezyExactArcGauge({
 {/* DISCORD SERVER REPORT EMBED WIDGET */}
 function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
   const [liveReport, setLiveReport] = useState<any | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<"alltime" | "30days" | "7days" | "custom">("alltime");
+  const [customStart, setCustomStart] = useState("2026-06-29");
+  const [customEnd, setCustomEnd] = useState("2026-08-09");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadReport = useCallback(async (period: string, startStr?: string, endStr?: string) => {
+    setIsLoading(true);
+    try {
+      let url = "https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/server-report";
+      
+      if (period === "30days") {
+        const endD = new Date();
+        const startD = new Date();
+        startD.setDate(endD.getDate() - 30);
+        const s = startD.toISOString().split("T")[0];
+        const e = endD.toISOString().split("T")[0];
+        url += `?startDate=${s}&endDate=${e}`;
+      } else if (period === "7days") {
+        const endD = new Date();
+        const startD = new Date();
+        startD.setDate(endD.getDate() - 7);
+        const s = startD.toISOString().split("T")[0];
+        const e = endD.toISOString().split("T")[0];
+        url += `?startDate=${s}&endDate=${e}`;
+      } else if (period === "custom" && startStr && endStr) {
+        url += `?startDate=${startStr}&endDate=${endStr}`;
+      }
+
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        setLiveReport(data);
+      }
+    } catch (e) {
+      console.warn("Could not load server report:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    async function loadReport() {
-      try {
-        const res = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/server-report");
-        if (res.ok) {
-          const data = await res.json();
-          setLiveReport(data);
-        }
-      } catch (e) {
-        console.warn("Could not load live server report:", e);
-      }
+    if (selectedPeriod !== "custom") {
+      loadReport(selectedPeriod);
     }
-    loadReport();
-  }, []);
+  }, [selectedPeriod, loadReport]);
+
+  const handleApplyCustom = () => {
+    if (customStart && customEnd) {
+      setSelectedPeriod("custom");
+      setShowCustomForm(false);
+      setIsDropdownOpen(false);
+      loadReport("custom", customStart, customEnd);
+    }
+  };
 
   const reportPeriod = liveReport?.periodLabel || "Todo el Tiempo (Histórico Completo)";
 
-  const uniquePlayersVal = liveReport?.summary?.uniquePlayers ? liveReport.summary.uniquePlayers.toLocaleString('es-ES') : "10,774";
-  const totalMatchesVal = liveReport?.summary?.totalMatches ? liveReport.summary.totalMatches.toLocaleString('es-ES') : "364";
-  const avgDurationVal = liveReport?.summary?.avgMatchDurationMinutes ? `${liveReport.summary.avgMatchDurationMinutes}m` : "58m";
-  const totalSessionsVal = liveReport?.summary?.totalPlayerSessions ? liveReport.summary.totalPlayerSessions.toLocaleString('es-ES') : "31,919";
+  const uniquePlayersVal = liveReport?.summary?.uniquePlayers !== undefined ? liveReport.summary.uniquePlayers.toLocaleString('es-ES') : "10,774";
+  const totalMatchesVal = liveReport?.summary?.totalMatches !== undefined ? liveReport.summary.totalMatches.toLocaleString('es-ES') : "364";
+  const avgDurationVal = liveReport?.summary?.avgMatchDurationMinutes !== undefined ? `${liveReport.summary.avgMatchDurationMinutes}m` : "58m";
+  const totalSessionsVal = liveReport?.summary?.totalPlayerSessions !== undefined ? liveReport.summary.totalPlayerSessions.toLocaleString('es-ES') : "31,919";
   const mostPlayedMapVal = liveReport?.summary?.mostPlayedMap || "Mutaha";
   const mostPlayedLayerVal = liveReport?.summary?.mostPlayedLayer || "Mutaha RAAS v1";
-  const longestMatchVal = liveReport?.summary?.longestMatchMinutes ? `${Math.floor(liveReport.summary.longestMatchMinutes / 60)}h ${liveReport.summary.longestMatchMinutes % 60}m` : "7h 47m";
+  const longestMatchVal = liveReport?.summary?.longestMatchMinutes !== undefined ? `${Math.floor(liveReport.summary.longestMatchMinutes / 60)}h ${liveReport.summary.longestMatchMinutes % 60}m` : "7h 47m";
 
   const SUMMARY_KPI_CARDS = [
     { title: "Jugadores Únicos Activos", value: uniquePlayersVal, icon: Users, color: "#F17633", badge: "Población total acumulada" },
@@ -1044,7 +1085,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
   return (
     <div className="space-y-6">
       {/* Top Banner Card */}
-      <div className={`rounded-2xl border p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden ${
+      <div className={`rounded-2xl border p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-visible ${
         isDark ? "bg-[#1B212D] border-[#53565A]/40 text-white" : "bg-[#F8F5F1] border-[#C0B9AB]/60 text-[#294C74] shadow-xs"
       }`}>
         <div className="space-y-1">
@@ -1056,19 +1097,147 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
             <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-[#A4C1A8]/20 text-[#294C74] dark:text-[#A4C1A8]">
               ART (UTC-3)
             </span>
+            {isLoading && (
+              <span className="text-xs text-[#F17633] font-semibold animate-pulse ml-2 flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5 animate-spin" /> cargando...
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 font-medium">
             Estadísticas agregadas de partidas completadas, victorias por facción, horas pico y concurrencia histórica.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 font-sans text-xs">
-          <div className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 font-semibold border transition-all ${
-            isDark ? "bg-[#141821] border-[#53565A]/40 text-slate-200" : "bg-white border-[#C0B9AB]/60 text-[#294C74] shadow-xs"
-          }`}>
-            <CustomCalendarIcon size={16} color="#F17633" strokeWidth={2.5} />
-            <span>{reportPeriod}</span>
+        {/* Interactive Period Selector Pill & Dropdown */}
+        <div className="flex items-center gap-3 font-sans text-xs relative">
+          <div className="relative">
+            <button 
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 font-semibold border transition-all cursor-pointer ${
+                isDark ? "bg-[#141821] border-[#53565A]/40 text-slate-200 hover:bg-white/10" : "bg-white border-[#C0B9AB]/60 text-[#294C74] hover:bg-slate-50 shadow-xs"
+              }`}
+            >
+              <CustomCalendarIcon size={16} color="#F17633" strokeWidth={2.5} />
+              <span>{reportPeriod}</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className={`absolute right-0 mt-2 w-72 rounded-2xl border shadow-2xl z-50 p-2 space-y-1.5 font-sans text-xs animate-in fade-in zoom-in-95 ${
+                isDark ? "bg-[#1B212D] border-[#53565A]/40 text-white" : "bg-[#F8F5F1] border-[#C0B9AB]/60 text-[#294C74]"
+              }`}>
+                <button
+                  onClick={() => {
+                    setSelectedPeriod("alltime");
+                    setShowCustomForm(false);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                    selectedPeriod === "alltime" 
+                      ? "bg-[#F17633]/15 text-[#F17633] font-bold" 
+                      : "hover:bg-slate-100 dark:hover:bg-white/5 opacity-80"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-[#F17633]" />
+                    <span>Todo el Tiempo (Histórico)</span>
+                  </div>
+                  {selectedPeriod === "alltime" && <Check className="h-3.5 w-3.5 text-[#F17633]" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedPeriod("30days");
+                    setShowCustomForm(false);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                    selectedPeriod === "30days" 
+                      ? "bg-[#F17633]/15 text-[#F17633] font-bold" 
+                      : "hover:bg-slate-100 dark:hover:bg-white/5 opacity-80"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <CustomCalendarIcon size={15} color="#294C74" strokeWidth={2.5} />
+                    <span>Últimos 30 días</span>
+                  </div>
+                  {selectedPeriod === "30days" && <Check className="h-3.5 w-3.5 text-[#F17633]" />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setSelectedPeriod("7days");
+                    setShowCustomForm(false);
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                    selectedPeriod === "7days" 
+                      ? "bg-[#F17633]/15 text-[#F17633] font-bold" 
+                      : "hover:bg-slate-100 dark:hover:bg-white/5 opacity-80"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-[#69989E]" />
+                    <span>Últimos 7 días</span>
+                  </div>
+                  {selectedPeriod === "7days" && <Check className="h-3.5 w-3.5 text-[#F17633]" />}
+                </button>
+
+                <button
+                  onClick={() => setShowCustomForm(!showCustomForm)}
+                  className={`flex w-full items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                    selectedPeriod === "custom" || showCustomForm
+                      ? "bg-[#294C74]/15 text-[#294C74] dark:text-white font-bold" 
+                      : "hover:bg-slate-100 dark:hover:bg-white/5 opacity-80"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <CustomCalendarIcon size={15} color="#F17633" strokeWidth={2.5} />
+                    <span>Rango Personalizado...</span>
+                  </div>
+                  {selectedPeriod === "custom" && <Check className="h-3.5 w-3.5 text-[#F17633]" />}
+                </button>
+
+                {/* Custom Date Range Inputs */}
+                {showCustomForm && (
+                  <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-2 border border-slate-200 dark:border-white/10 mt-1">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 block">Fecha Inicio (Desde)</label>
+                      <input 
+                        type="date" 
+                        value={customStart}
+                        onChange={(e) => setCustomStart(e.target.value)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs font-mono font-semibold ${
+                          isDark ? "bg-[#141821] border-[#53565A]/40 text-white" : "bg-white border-[#C0B9AB]/60 text-[#294C74]"
+                        }`}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 block">Fecha Fin (Hasta)</label>
+                      <input 
+                        type="date" 
+                        value={customEnd}
+                        onChange={(e) => setCustomEnd(e.target.value)}
+                        className={`w-full px-2.5 py-1.5 rounded-lg border text-xs font-mono font-semibold ${
+                          isDark ? "bg-[#141821] border-[#53565A]/40 text-white" : "bg-white border-[#C0B9AB]/60 text-[#294C74]"
+                        }`}
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleApplyCustom}
+                      className="w-full py-2 rounded-lg bg-[#F17633] text-white font-bold text-xs hover:bg-[#d96222] transition-colors cursor-pointer shadow-xs mt-1"
+                    >
+                      Aplicar Rango de Fechas
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F17633] text-white font-bold text-xs hover:bg-[#d96222] transition-colors cursor-pointer shadow-xs">
             <Download className="h-4 w-4" />
             <span>Exportar Informe</span>
