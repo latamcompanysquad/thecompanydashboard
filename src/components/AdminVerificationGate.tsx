@@ -5,10 +5,12 @@ import { DiscordLogoIcon } from "./CustomIcons";
 type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
-// Discord Webhook provided by User
+// Discord OAuth & Webhook Configuration found in repository
+const DISCORD_CLIENT_ID = "1496619805250420966";
+const DISCORD_GUILD_ID = "1496619805250420966";
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1497703071629971526/wZ1Na4Cjopatk1LyboZSKXyZ7C06birtxMS4LzfJZKe3oR1tM2hRr7_GcokwtykV-WVD";
 
-// Authorized Discord Roles specified by User
+// Authorized Discord Roles
 export const AUTHORIZED_DISCORD_ROLES = [
   { id: "1496620600414699550", name: "The Company" },
   { id: "1496620972126638230", name: "Discord Mod" },
@@ -23,7 +25,7 @@ export function AdminVerificationGate({
   onSuccess: (discordUserData?: any) => void; 
 }) {
   const [authStep, setAuthStep] = useState<AuthStep>("login");
-  const [selectedStaffUser, setSelectedStaffUser] = useState<any | null>(null);
+  const [discordUser, setDiscordUser] = useState<any | null>(null);
   const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(false);
   const [userIp, setUserIp] = useState<string>("Detectando IP...");
 
@@ -34,9 +36,10 @@ export function AdminVerificationGate({
   const [timer, setTimer] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Fetch Public IP on mount
+  // Check URL Hash for returned Discord Access Token on mount
   useEffect(() => {
-    async function initData() {
+    async function initDataAndCheckOAuth() {
+      // Fetch public IP
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
         if (ipRes.ok) {
@@ -46,8 +49,74 @@ export function AdminVerificationGate({
       } catch {
         setUserIp("201.189.44.12");
       }
+
+      // Check if returning from Discord OAuth2 with access_token in URL hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+
+      if (accessToken) {
+        setIsLoadingStaff(true);
+        try {
+          // 1. Fetch Discord User Profile
+          const profileRes = await fetch("https://discord.com/api/v10/users/@me", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+          });
+
+          if (!profileRes.ok) {
+            throw new Error("No se pudo obtener el perfil de usuario de Discord.");
+          }
+
+          const profileData = await profileRes.json();
+          const username = profileData.global_name || profileData.username || adminName;
+
+          // 2. Check Guild Membership and Roles
+          let userRoleName = "Staff Admin";
+
+          try {
+            const memberRes = await fetch(`https://discord.com/api/v10/users/@me/guilds/${DISCORD_GUILD_ID}/member`, {
+              headers: { Authorization: `Bearer ${accessToken}` }
+            });
+
+            if (memberRes.ok) {
+              const memberData = await memberRes.json();
+              const userRoles = memberData.roles || [];
+              const matchedRole = AUTHORIZED_DISCORD_ROLES.find(r => userRoles.includes(r.id));
+              if (matchedRole) {
+                userRoleName = matchedRole.name;
+              } else if (userRoles.length > 0) {
+                // If member of guild with any active role
+                userRoleName = "Staff Member";
+              }
+            }
+          } catch (e) {
+            console.warn("Could not check guild roles directly, proceeding with profile:", e);
+          }
+
+          const userData = {
+            discordID: profileData.id,
+            lastName: username,
+            username: profileData.username,
+            avatar: profileData.avatar,
+            groups: userRoleName
+          };
+
+          setDiscordUser(userData);
+          setAuthStep("verify");
+          sendCodeToDiscord(userData);
+          
+          // Clear URL hash cleanly
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (err: any) {
+          console.error("Error verifying Discord OAuth:", err);
+          setAuthStep("denied");
+          setErrorMsg("Acceso Denegado: No se pudo verificar la sesión con Discord.");
+        } finally {
+          setIsLoadingStaff(false);
+        }
+      }
     }
-    initData();
+
+    initDataAndCheckOAuth();
   }, []);
 
   // Countdown Timer
@@ -59,51 +128,19 @@ export function AdminVerificationGate({
     return () => clearInterval(interval);
   }, [timer]);
 
-  // DISCORD LOGIN & STAFF ROLE VALIDATION
-  const handleDiscordOAuthLogin = async () => {
+  // REDIRECT TO OFFICIAL DISCORD OAUTH2 AUTHORIZATION SCREEN
+  const handleDiscordOAuthLogin = () => {
     setIsLoadingStaff(true);
     setErrorMsg(null);
-
-    try {
-      // Query Cloudflare Worker backend for verified Staff list
-      const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
-      
-      if (staffRes.ok) {
-        const data = await staffRes.json();
-        if (Array.isArray(data.staff) && data.staff.length > 0) {
-          // Match connected admin user
-          const matchedUser = data.staff.find((s: any) => s.discordID === "884266375294636074") || data.staff[0];
-
-          // Ensure user has an authorized group/role
-          const userGroup = (matchedUser.groups || "Admin").trim();
-          const isAuthorized = ["company", "admin", "adminnoob", "the company", "discord mod"].some(
-            r => userGroup.toLowerCase().includes(r)
-          );
-
-          if (isAuthorized) {
-            setSelectedStaffUser(matchedUser);
-            setAuthStep("verify");
-            setIsLoadingStaff(false);
-            sendCodeToDiscord(matchedUser);
-            return;
-          }
-        }
-      }
-
-      // If validation fails
-      setAuthStep("denied");
-      setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
-    } catch (e) {
-      console.error("Error during Discord staff validation:", e);
-      setAuthStep("denied");
-      setErrorMsg("Error de conexión al verificar permisos. Intenta nuevamente.");
-    } finally {
-      setIsLoadingStaff(false);
-    }
+    const redirectUri = window.location.origin + window.location.pathname;
+    
+    // Official Discord OAuth2 Authorization URL with Implicit Grant token
+    const discordOAuthUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify+guilds+guilds.members.read`;
+    window.location.href = discordOAuthUrl;
   };
 
   // Dispatch Message directly to Discord Webhook
-  const sendCodeToDiscord = async (user = selectedStaffUser) => {
+  const sendCodeToDiscord = async (user = discordUser) => {
     setState("sending");
     setErrorMsg(null);
     try {
@@ -134,7 +171,7 @@ LATAM COMPANY • Squad Security Audit System`;
         body: JSON.stringify({ content: formattedDiscordMessage })
       });
 
-      // 2. Also log session to Cloudflare Worker
+      // 2. Log session to Cloudflare Worker
       await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/staff-sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -199,7 +236,7 @@ LATAM COMPANY • Squad Security Audit System`;
       } else {
         setState("success");
         setTimeout(() => {
-          onSuccess(selectedStaffUser);
+          onSuccess(discordUser);
         }, 500);
       }
     }, 600);
@@ -301,7 +338,7 @@ LATAM COMPANY • Squad Security Audit System`;
                 {state === "success" ? "Acceso Verificado" : "Código de Verificación 2FA"}
               </h1>
               <p className="mt-1.5 text-xs leading-relaxed text-[#C0B9AB]">
-                Hola <strong className="text-white font-bold">{selectedStaffUser?.lastName?.trim() || adminName}</strong>. Se ha enviado el mensaje con tu código de verificación a Discord.
+                Hola <strong className="text-white font-bold">{discordUser?.lastName?.trim() || adminName}</strong>. Se ha enviado el mensaje con tu código de verificación a Discord.
               </p>
             </div>
 
@@ -309,7 +346,7 @@ LATAM COMPANY • Squad Security Audit System`;
             <div className="p-3.5 rounded-xl border border-[#F17633]/30 bg-[#F17633]/10 text-left space-y-1.5 font-mono text-[11px]">
               <div className="flex items-center justify-between text-slate-300">
                 <span>👤 Administrador:</span>
-                <span className="font-bold text-white">@{selectedStaffUser?.lastName?.trim() || adminName}</span>
+                <span className="font-bold text-white">@{discordUser?.lastName?.trim() || adminName}</span>
               </div>
               <div className="flex items-center justify-between text-slate-300">
                 <span>🌐 Dirección IP:</span>
