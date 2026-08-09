@@ -2740,7 +2740,15 @@ export function AdminDashboardClient({
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.08)" : "#C0B9AB"} vertical={true} horizontal={true} />
-                            <XAxis dataKey="day" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                            <XAxis 
+                              dataKey="day" 
+                              stroke="#94a3b8" 
+                              fontSize={10} 
+                              tickLine={false} 
+                              axisLine={false} 
+                              interval={chartView === "monthly" ? 1 : 2}
+                              padding={{ left: 10, right: 10 }}
+                            />
                             <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}`} />
                             <Tooltip contentStyle={{ backgroundColor: isDark ? "#1B212D" : "#ffffff", borderColor: isDark ? "#53565A" : "#C0B9AB", borderRadius: "12px" }} />
                             <Area 
