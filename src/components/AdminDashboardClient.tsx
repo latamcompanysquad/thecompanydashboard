@@ -103,7 +103,7 @@ const SQUAD_CONCURRENCY_WAVE_DATA = [
   { day: "30 Ago", jugadores: 90, cola: 14 },
 ];
 
-const SQUAD_CONCURRENCY_24H_DATA = [
+export const SQUAD_CONCURRENCY_24H_DATA = [
   { day: "00:00", jugadores: 98, cola: 22 },
   { day: "01:00", jugadores: 94, cola: 18 },
   { day: "02:00", jugadores: 82, cola: 8 },
@@ -2560,6 +2560,49 @@ export function AdminDashboardClient({
                 const liveQueue = rawQueue > 0 ? rawQueue : (livePlayers >= 90 ? 2 : 0);
                 const capacityPercentage = Math.min(100, Math.round((livePlayers / Math.max(1, maxPlayers)) * 100));
 
+                // Generate dynamic rolling 24-hour window ending at current hour
+                const currentHour = new Date().getHours();
+                const rolling24hData = Array.from({ length: 24 }).map((_, i) => {
+                  const idxFromPast = 23 - i;
+                  const hNum = (currentHour - idxFromPast + 24) % 24;
+                  const hourStr = `${hNum.toString().padStart(2, '0')}:00`;
+                  const isCurrentHour = i === 23;
+
+                  const BASE_CURVE: Record<number, { p: number; q: number }> = {
+                    0: { p: 98, q: 22 },
+                    1: { p: 94, q: 18 },
+                    2: { p: 88, q: 12 },
+                    3: { p: 62, q: 2 },
+                    4: { p: 28, q: 0 },
+                    5: { p: 16, q: 0 },
+                    6: { p: 10, q: 0 },
+                    7: { p: 14, q: 0 },
+                    8: { p: 22, q: 0 },
+                    9: { p: 38, q: 0 },
+                    10: { p: 52, q: 2 },
+                    11: { p: 68, q: 6 },
+                    12: { p: 84, q: 10 },
+                    13: { p: 92, q: 14 },
+                    14: { p: 98, q: 20 },
+                    15: { p: 98, q: 24 },
+                    16: { p: 96, q: 18 },
+                    17: { p: 98, q: 22 },
+                    18: { p: 98, q: 26 },
+                    19: { p: 98, q: 28 },
+                    20: { p: 98, q: 24 },
+                    21: { p: 98, q: 22 },
+                    22: { p: 98, q: 20 },
+                    23: { p: 96, q: 16 },
+                  };
+
+                  if (isCurrentHour) {
+                    return { day: hourStr, jugadores: livePlayers, cola: liveQueue };
+                  }
+
+                  const base = BASE_CURVE[hNum] || { p: 50, q: 0 };
+                  return { day: hourStr, jugadores: base.p, cola: base.q };
+                });
+
                 return (
                   <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     
@@ -2615,7 +2658,7 @@ export function AdminDashboardClient({
                       <div className="h-64 w-full pt-2 relative">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart 
-                            data={chartView === "monthly" ? SQUAD_CONCURRENCY_24H_DATA : SQUAD_CONCURRENCY_WAVE_DATA} 
+                            data={chartView === "monthly" ? rolling24hData : SQUAD_CONCURRENCY_WAVE_DATA} 
                             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                           >
                             <defs>
