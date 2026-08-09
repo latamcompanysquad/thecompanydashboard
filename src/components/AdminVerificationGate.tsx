@@ -6,7 +6,7 @@ type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
 // Official Discord Webhook & Application Client Credentials
-const DISCORD_CLIENT_ID = "1497703071629971526";
+const DISCORD_CLIENT_ID = "1507142513016963124";
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1497703071629971526/wZ1Na4Cjopatk1LyboZSKXyZ7C06birtxMS4LzfJZKe3oR1tM2hRr7_GcokwtykV-WVD";
 
 export function AdminVerificationGate({ 
