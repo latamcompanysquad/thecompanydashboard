@@ -2573,15 +2573,8 @@ export function AdminDashboardClient({
                             </h3>
                           </div>
                           
-                          <div className="flex items-center gap-4 mt-1">
-                            <div>
-                              <span className={`text-3xl font-black font-sans ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                                {livePlayers}
-                              </span>
-                              <span className="text-xs font-bold text-slate-400 ml-1">/ {maxPlayers} En Servidor</span>
-                            </div>
-
-                            <span className="inline-flex items-center gap-1 rounded-md bg-[#A4C1A8]/20 px-2.5 py-1 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8] ml-auto font-mono">
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-[#A4C1A8]/20 px-2.5 py-1 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8] font-mono">
                               ({livePlayers}/{maxPlayers}+{liveQueue}) {capacityPercentage}%
                             </span>
                           </div>
