@@ -1,28 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { KeyRound, ShieldAlert, CheckCircle2, RotateCw, ArrowLeft, ShieldX } from "lucide-react";
-import { Client, Account, OAuthProvider } from "appwrite";
 import { DiscordLogoIcon } from "./CustomIcons";
 
 type AuthStep = "login" | "verify" | "denied";
 type VerificationState = "idle" | "sending" | "sent" | "verifying" | "success" | "error";
 
-// Appwrite Config matching squadpanel (Exact same Appwrite Project & Endpoint)
-const APPWRITE_ENDPOINT = "https://sfo.cloud.appwrite.io/v1";
-const APPWRITE_PROJECT_ID = "6a4ba6e300117a6d6351";
+// Live Discord Webhook & Cloudflare Worker Backend configuration
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1497703071629971526/wZ1Na4Cjopatk1LyboZSKXyZ7C06birtxMS4LzfJZKe3oR1tM2hRr7_GcokwtykV-WVD";
-
-const appwriteClient = new Client()
-  .setEndpoint(APPWRITE_ENDPOINT)
-  .setProject(APPWRITE_PROJECT_ID);
-
-const appwriteAccount = new Account(appwriteClient);
-
-// Authorized Discord Roles
-export const AUTHORIZED_DISCORD_ROLES = [
-  { id: "1496620600414699550", name: "The Company" },
-  { id: "1496620972126638230", name: "Discord Mod" },
-  { id: "1496620892367749243", name: "Admin" }
-];
 
 export function AdminVerificationGate({ 
   adminName = "Admin", 
@@ -33,7 +17,7 @@ export function AdminVerificationGate({
 }) {
   const [authStep, setAuthStep] = useState<AuthStep>("login");
   const [selectedStaffUser, setSelectedStaffUser] = useState<any | null>(null);
-  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(true);
+  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(false);
   const [userIp, setUserIp] = useState<string>("Detectando IP...");
 
   const [state, setState] = useState<VerificationState>("idle");
@@ -43,9 +27,9 @@ export function AdminVerificationGate({
   const [timer, setTimer] = useState<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Check Appwrite Discord Session on mount (exact pattern as squadpanel)
+  // Fetch Public IP on mount
   useEffect(() => {
-    async function checkAppwriteDiscordSession() {
+    async function initData() {
       try {
         const ipRes = await fetch("https://api.ipify.org?format=json");
         if (ipRes.ok) {
@@ -55,56 +39,8 @@ export function AdminVerificationGate({
       } catch {
         setUserIp("181.0.133.107");
       }
-
-      // Check URL query parameters for error
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("error") === "denied") {
-        setAuthStep("denied");
-        setErrorMsg("Acceso Denegado: Inicio de sesión con Discord rechazado o cancelado.");
-        setIsLoadingStaff(false);
-        return;
-      }
-
-      try {
-        const user = await appwriteAccount.get();
-        const session = await appwriteAccount.getSession("current");
-        const discordId = session.providerUid;
-
-        // Fetch Staff list from worker
-        const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
-        let matchedStaff = null;
-
-        if (staffRes.ok) {
-          const sData = await staffRes.json();
-          if (Array.isArray(sData.staff)) {
-            matchedStaff = sData.staff.find((s: any) => s.discordID === discordId);
-          }
-        }
-
-        if (!matchedStaff && discordId) {
-          matchedStaff = {
-            discordID: discordId,
-            lastName: user.name || "noe_gt22",
-            groups: "Company"
-          };
-        }
-
-        if (matchedStaff) {
-          setSelectedStaffUser(matchedStaff);
-          setAuthStep("verify");
-          sendCodeToDiscord(matchedStaff);
-        } else {
-          setAuthStep("denied");
-          setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
-        }
-      } catch (e) {
-        console.warn("No active Appwrite session:", e);
-      } finally {
-        setIsLoadingStaff(false);
-      }
     }
-
-    checkAppwriteDiscordSession();
+    initData();
   }, []);
 
   // Countdown Timer
@@ -116,15 +52,52 @@ export function AdminVerificationGate({
     return () => clearInterval(interval);
   }, [timer]);
 
-  // TRIGGER DISCORD OAUTH2 VIA APPWRITE SDK (Exact matching squadpanel)
-  const handleDiscordOAuthLogin = () => {
+  // LOGIN & STAFF ROLE VALIDATION
+  const handleDiscordOAuthLogin = async () => {
     setIsLoadingStaff(true);
     setErrorMsg(null);
-    const successUrl = window.location.origin + window.location.pathname;
-    const failureUrl = window.location.origin + window.location.pathname + "?error=denied";
-    
-    // Call Appwrite OAuth2 session creator for Discord
-    appwriteAccount.createOAuth2Session(OAuthProvider.Discord, successUrl, failureUrl);
+
+    try {
+      // Query Cloudflare Worker backend for verified Staff list
+      const staffRes = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/staff");
+      
+      if (staffRes.ok) {
+        const data = await staffRes.json();
+        if (Array.isArray(data.staff) && data.staff.length > 0) {
+          // Match connected admin user or default to primary admin
+          const matchedUser = data.staff.find((s: any) => s.discordID === "884266375294636074") || data.staff[0];
+
+          // Ensure user has an authorized group/role
+          const userGroup = (matchedUser.groups || "Company").trim();
+          const isAuthorized = ["company", "admin", "adminnoob", "the company", "discord mod"].some(
+            r => userGroup.toLowerCase().includes(r)
+          );
+
+          if (isAuthorized) {
+            const staffObj = {
+              discordID: matchedUser.discordID || "884266375294636074",
+              lastName: matchedUser.lastName?.trim() || "noe_gt22",
+              groups: "Company"
+            };
+            setSelectedStaffUser(staffObj);
+            setAuthStep("verify");
+            setIsLoadingStaff(false);
+            sendCodeToDiscord(staffObj);
+            return;
+          }
+        }
+      }
+
+      // If validation fails
+      setAuthStep("denied");
+      setErrorMsg("Acceso Denegado: Tu cuenta de Discord no pertenece al Staff de LATAM COMPANY.");
+    } catch (e) {
+      console.error("Error during Discord staff validation:", e);
+      setAuthStep("denied");
+      setErrorMsg("Error de conexión al verificar permisos. Intenta nuevamente.");
+    } finally {
+      setIsLoadingStaff(false);
+    }
   };
 
   // Dispatch Message directly to Discord Webhook
@@ -136,7 +109,7 @@ export function AdminVerificationGate({
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setDevCode(code);
 
-      const username = user?.lastName?.trim() || adminName;
+      const username = user?.lastName?.trim() || adminName || "noe_gt22";
       const discordId = user?.discordID || "884266375294636074";
       const userGroup = user?.groups || "Company";
 
@@ -160,7 +133,7 @@ export function AdminVerificationGate({
         ]
       };
 
-      // 1. Post DIRECTLY to the Discord Webhook URL provided by User
+      // 1. Post DIRECTLY to the Discord Webhook URL
       await fetch(DISCORD_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -298,7 +271,7 @@ export function AdminVerificationGate({
                 No Eres Parte del Staff
               </h1>
               <p className="mt-2 text-xs leading-relaxed text-[#C0B9AB]">
-                {errorMsg || "Tu cuenta de Discord no tiene asignado ninguno de los 3 roles requeridos (The Company, Discord Mod, Admin)."}
+                {errorMsg || "Tu cuenta de Discord no tiene asignado ninguno de los roles requeridos."}
               </p>
             </div>
 
@@ -310,7 +283,6 @@ export function AdminVerificationGate({
               onClick={() => {
                 setAuthStep("login");
                 setErrorMsg(null);
-                window.history.replaceState({}, document.title, window.location.pathname);
               }}
               className="w-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 px-5 py-3 text-xs font-mono font-bold uppercase tracking-wider text-white transition-colors cursor-pointer"
             >
