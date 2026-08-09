@@ -3,8 +3,9 @@ import { AdminVerificationGate } from "./components/AdminVerificationGate";
 import { AdminDashboardClient } from "./components/AdminDashboardClient";
 
 export default function App() {
-  // Always default to unauthorized on page load/reload
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  // Automatically start logged in during local development (npm run dev)
+  const isDev = import.meta.env.DEV;
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(isDev);
   const [activeAdminName, setActiveAdminName] = useState<string>("noe_gt22");
 
   const handleSuccess = (staffUser?: any) => {

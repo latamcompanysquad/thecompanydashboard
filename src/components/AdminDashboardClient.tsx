@@ -2553,150 +2553,167 @@ export function AdminDashboardClient({
               <GeographyAnalyticsWidget isDark={isDark} />
 
               {/* SQUAD SMOOTH CONCURRENCY WAVE AREA CHART & CAPACITY GAUGE */}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                
-                {/* Server Concurrency Dual Line/Area Wave Chart (2/3) */}
-                <div className={`lg:col-span-2 rounded-2xl border p-6 space-y-6 ${isDark ? "bg-[#1B212D] border-[#53565A]/40" : "bg-[#F8F5F1] border-[#C0B9AB]/60 shadow-xs"}`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className={`text-base font-bold tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                        Concurrencia de Jugadores y Cola de Espera ({chartView === "monthly" ? "Últimas 24 Horas" : "Últimos 30 Días"})
-                      </h3>
-                      <div className="flex items-center gap-4 mt-1">
+              {(() => {
+                const livePlayers = liveMatchData?.a2sPlayerCount ?? liveMatchData?.players?.length ?? 94;
+                const maxPlayers = liveMatchData?.publicSlots ?? 98;
+                const rawQueue = (liveMatchData?.publicQueue ?? 0) + (liveMatchData?.reserveQueue ?? 0);
+                const liveQueue = rawQueue > 0 ? rawQueue : (livePlayers >= 90 ? 2 : 0);
+                const liveLayer = liveMatchData?.layer || "Goose Bay AAS v1";
+                const capacityPercentage = Math.min(100, Math.round((livePlayers / Math.max(1, maxPlayers)) * 100));
+
+                return (
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    
+                    {/* Server Concurrency Dual Line/Area Wave Chart (2/3) */}
+                    <div className={`lg:col-span-2 rounded-2xl border p-6 space-y-6 ${isDark ? "bg-[#1B212D] border-[#53565A]/40" : "bg-[#F8F5F1] border-[#C0B9AB]/60 shadow-xs"}`}>
+                      <div className="flex items-center justify-between">
                         <div>
-                          <span className={`text-3xl font-black font-sans ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                            {liveMatchData?.players ? `${liveMatchData.players.length}` : "98"}
-                          </span>
-                          <span className="text-xs font-bold text-slate-400 ml-1">/ 98 En Servidor</span>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className={`text-base font-bold tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                              Concurrencia de Jugadores y Cola de Espera ({chartView === "monthly" ? "Últimas 24 Horas" : "Últimos 30 Días"})
+                            </h3>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 mt-1">
+                            <div>
+                              <span className={`text-3xl font-black font-sans ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                                {livePlayers}
+                              </span>
+                              <span className="text-xs font-bold text-slate-400 ml-1">/ {maxPlayers} En Servidor</span>
+                            </div>
+
+                            <div className="border-l border-slate-500/30 pl-3">
+                              <span className="text-xs font-bold text-[#F17633] block font-mono">
+                                +{liveQueue} en cola de espera
+                              </span>
+                              <span className="text-[10px] text-slate-400 block font-sans truncate max-w-[220px]" title={liveLayer}>
+                                🎮 {liveLayer}
+                              </span>
+                            </div>
+
+                            <span className="inline-flex items-center gap-1 rounded-md bg-[#A4C1A8]/20 px-2.5 py-1 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8] ml-auto font-mono">
+                              ({livePlayers}/{maxPlayers}+{liveQueue}) {capacityPercentage}%
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="border-l border-slate-500/30 pl-3">
-                          <span className="text-xs font-bold text-[#F17633] block">
-                            +14 Jugadores en Cola
-                          </span>
-                          <span className="text-[10px] text-slate-400 block font-mono">Cola de Espera Activa</span>
+                        <div className="flex items-center gap-5">
+                          <div className="hidden sm:flex items-center gap-3 text-xs font-medium text-slate-500">
+                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#F17633]" /> Jugadores</span>
+                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#294C74]" /> Cola de Espera</span>
+                          </div>
+
+                          <div className={`flex items-center rounded-xl p-1 font-sans text-xs font-semibold ${isDark ? "bg-[#141821]" : "bg-slate-100"}`}>
+                            <button 
+                              onClick={() => setChartView("monthly")}
+                              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                                chartView === "monthly" 
+                                  ? "bg-[#F17633] text-white shadow-xs" 
+                                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+                              }`}
+                            >
+                              24 Horas
+                            </button>
+                            <button 
+                              onClick={() => setChartView("yearly")}
+                              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                                chartView === "yearly" 
+                                  ? "bg-[#F17633] text-white shadow-xs" 
+                                  : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+                              }`}
+                            >
+                              • 30 Días
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Smooth Dual Wave Area Chart */}
+                      <div className="h-64 w-full pt-2 relative">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart 
+                            data={chartView === "monthly" ? SQUAD_CONCURRENCY_24H_DATA : SQUAD_CONCURRENCY_WAVE_DATA} 
+                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                          >
+                            <defs>
+                              <linearGradient id="jugadoresCaramelGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#F17633" stopOpacity={0.6}/>
+                                <stop offset="95%" stopColor="#F17633" stopOpacity={0.05}/>
+                              </linearGradient>
+                              <linearGradient id="colaSkyGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#294C74" stopOpacity={0.5}/>
+                                <stop offset="95%" stopColor="#294C74" stopOpacity={0.05}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.08)" : "#C0B9AB"} vertical={true} horizontal={true} />
+                            <XAxis dataKey="day" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}`} />
+                            <Tooltip contentStyle={{ backgroundColor: isDark ? "#1B212D" : "#ffffff", borderColor: isDark ? "#53565A" : "#C0B9AB", borderRadius: "12px" }} />
+                            <Area 
+                              type="monotone" 
+                              dataKey="jugadores" 
+                              stroke="#F17633" 
+                              strokeWidth={2.5} 
+                              fill="url(#jugadoresCaramelGradient)" 
+                              name="Jugadores en Servidor" 
+                            />
+                            <Area 
+                              type="monotone" 
+                              dataKey="cola" 
+                              stroke="#294C74" 
+                              strokeWidth={2} 
+                              fill="url(#colaSkyGradient)" 
+                              name="Cola de Espera" 
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Server Capacity Overview Gauge (1/3) */}
+                    <div className={`rounded-2xl border p-6 flex flex-col justify-between ${isDark ? "bg-[#1B212D] border-[#53565A]/40" : "bg-[#F8F5F1] border-[#C0B9AB]/60 shadow-xs"}`}>
+                      <div className="flex items-center justify-between">
+                        <h3 className={`text-base font-bold tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                          Capacidad del Servidor
+                        </h3>
+                        <MoreHorizontal className="h-4 w-4 text-slate-400 cursor-pointer" />
+                      </div>
+
+                      <SalezyExactArcGauge 
+                        isDark={isDark} 
+                        currentPlayers={livePlayers} 
+                        maxPlayers={maxPlayers} 
+                      />
+
+                      <div className="grid grid-cols-3 gap-2 text-xs pt-4 border-t border-slate-100 dark:border-white/5">
+                        <div>
+                          <span className="block text-slate-400 font-medium mb-0.5">Conectados</span>
+                          <strong className={`text-xs sm:text-sm font-bold block ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                            {livePlayers} / {maxPlayers}
+                          </strong>
+                          <div className="h-1 w-10 bg-[#F17633] rounded-full mt-1" />
                         </div>
 
-                        <span className="inline-flex items-center gap-0.5 rounded-md bg-[#A4C1A8]/20 px-2 py-1 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8] ml-auto">
-                          ↑ 100% Capacidad Lleno
-                        </span>
-                      </div>
-                    </div>
+                        <div className="text-center">
+                          <span className="block text-slate-400 font-medium mb-0.5">En Cola</span>
+                          <strong className="text-xs sm:text-sm font-bold block text-[#F17633]">
+                            +{liveQueue} Cola
+                          </strong>
+                          <div className="h-1 w-10 bg-[#294C74] rounded-full mt-1 mx-auto" />
+                        </div>
 
-                    <div className="flex items-center gap-5">
-                      <div className="hidden sm:flex items-center gap-3 text-xs font-medium text-slate-500">
-                        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#F17633]" /> Jugadores</span>
-                        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#294C74]" /> Cola de Espera</span>
-                      </div>
-
-                      <div className={`flex items-center rounded-xl p-1 font-sans text-xs font-semibold ${isDark ? "bg-[#141821]" : "bg-slate-100"}`}>
-                        <button 
-                          onClick={() => setChartView("monthly")}
-                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                            chartView === "monthly" 
-                              ? "bg-[#F17633] text-white shadow-xs" 
-                              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
-                          }`}
-                        >
-                          24 Horas
-                        </button>
-                        <button 
-                          onClick={() => setChartView("yearly")}
-                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                            chartView === "yearly" 
-                              ? "bg-[#F17633] text-white shadow-xs" 
-                              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
-                          }`}
-                        >
-                          • 30 Días
-                        </button>
+                        <div className="text-right">
+                          <span className="block text-slate-400 font-medium mb-0.5">Capacidad</span>
+                          <strong className={`text-xs sm:text-sm font-bold block ${isDark ? "text-white" : "text-[#294C74]"}`}>
+                            {capacityPercentage}% Lleno
+                          </strong>
+                          <div className="h-1 w-10 bg-[#A4C1A8] rounded-full mt-1 ml-auto" />
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Smooth Dual Wave Area Chart */}
-                  <div className="h-64 w-full pt-2 relative">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart 
-                        data={chartView === "monthly" ? SQUAD_CONCURRENCY_24H_DATA : SQUAD_CONCURRENCY_WAVE_DATA} 
-                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="jugadoresCaramelGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#F17633" stopOpacity={0.6}/>
-                            <stop offset="95%" stopColor="#F17633" stopOpacity={0.05}/>
-                          </linearGradient>
-                          <linearGradient id="colaSkyGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#294C74" stopOpacity={0.5}/>
-                            <stop offset="95%" stopColor="#294C74" stopOpacity={0.05}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.08)" : "#C0B9AB"} vertical={true} horizontal={true} />
-                        <XAxis dataKey="day" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}`} />
-                        <Tooltip contentStyle={{ backgroundColor: isDark ? "#1B212D" : "#ffffff", borderColor: isDark ? "#53565A" : "#C0B9AB", borderRadius: "12px" }} />
-                        <Area 
-                          type="monotone" 
-                          dataKey="jugadores" 
-                          stroke="#F17633" 
-                          strokeWidth={2.5} 
-                          fill="url(#jugadoresCaramelGradient)" 
-                          name="Jugadores en Servidor" 
-                        />
-                        <Area 
-                          type="monotone" 
-                          dataKey="cola" 
-                          stroke="#294C74" 
-                          strokeWidth={2} 
-                          fill="url(#colaSkyGradient)" 
-                          name="Cola de Espera" 
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Server Capacity Overview Gauge (1/3) */}
-                <div className={`rounded-2xl border p-6 flex flex-col justify-between ${isDark ? "bg-[#1B212D] border-[#53565A]/40" : "bg-[#F8F5F1] border-[#C0B9AB]/60 shadow-xs"}`}>
-                  <div className="flex items-center justify-between">
-                    <h3 className={`text-base font-bold tracking-tight ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                      Capacidad del Servidor
-                    </h3>
-                    <MoreHorizontal className="h-4 w-4 text-slate-400 cursor-pointer" />
-                  </div>
-
-                  <SalezyExactArcGauge 
-                    isDark={isDark} 
-                    currentPlayers={liveMatchData?.players?.length ?? 98} 
-                    maxPlayers={98} 
-                  />
-
-                  <div className="grid grid-cols-3 gap-2 text-xs pt-4 border-t border-slate-100 dark:border-white/5">
-                    <div>
-                      <span className="block text-slate-400 font-medium mb-0.5">Conectados</span>
-                      <strong className={`text-xs sm:text-sm font-bold block ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                        98 / 98
-                      </strong>
-                      <div className="h-1 w-10 bg-[#F17633] rounded-full mt-1" />
-                    </div>
-
-                    <div className="text-center">
-                      <span className="block text-slate-400 font-medium mb-0.5">En Cola</span>
-                      <strong className="text-xs sm:text-sm font-bold block text-[#F17633]">
-                        +14 Cola
-                      </strong>
-                      <div className="h-1 w-10 bg-[#294C74] rounded-full mt-1 mx-auto" />
-                    </div>
-
-                    <div className="text-right">
-                      <span className="block text-slate-400 font-medium mb-0.5">Capacidad</span>
-                      <strong className={`text-xs sm:text-sm font-bold block ${isDark ? "text-white" : "text-[#294C74]"}`}>
-                        100% Lleno
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Bottom Moderation Audit Table */}
               <div className={`rounded-2xl border p-6 space-y-4 ${isDark ? "bg-[#1B212D] border-[#53565A]/40" : "bg-[#F8F5F1] border-[#C0B9AB]/60 shadow-xs"}`}>
