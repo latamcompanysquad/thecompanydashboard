@@ -993,20 +993,23 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
             <span className="p-2 rounded-xl bg-[#F17633]/15 text-[#F17633]">
               <BarChart2 className="h-5 w-5" />
             </span>
-            <h2 className="text-xl font-black tracking-tight">Reportes de Servidor Discord</h2>
+            <h2 className="text-xl font-black tracking-tight">Reportes del Servidor</h2>
             <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-[#A4C1A8]/20 text-[#294C74] dark:text-[#A4C1A8]">
               ART (UTC-3)
             </span>
           </div>
           <p className="text-xs text-slate-400 font-medium">
-            Estadísticas agregadas de partidas completadas, victorias por facción, horas pico y heatmap de concurrencia.
+            Estadísticas agregadas de partidas completadas, victorias por facción, horas pico y concurrencia histórica.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono font-semibold px-3 py-1.5 rounded-xl border border-[#F17633]/40 bg-[#F17633]/10 text-[#F17633]">
-            📅 {reportPeriod}
-          </span>
+        <div className="flex items-center gap-3 font-sans text-xs">
+          <div className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 font-semibold border transition-all ${
+            isDark ? "bg-[#141821] border-[#53565A]/40 text-slate-200" : "bg-white border-[#C0B9AB]/60 text-[#294C74] shadow-xs"
+          }`}>
+            <CustomCalendarIcon size={16} color="#F17633" strokeWidth={2.5} />
+            <span>{reportPeriod}</span>
+          </div>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F17633] text-white font-bold text-xs hover:bg-[#d96222] transition-colors cursor-pointer shadow-xs">
             <Download className="h-4 w-4" />
             <span>Exportar Informe</span>
