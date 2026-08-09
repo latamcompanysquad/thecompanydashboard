@@ -265,57 +265,18 @@ LATAM COMPANY • Squad Security Audit System`;
 
         {/* STEP 1: DISCORD LOGIN */}
         {authStep === "login" && (
-          <div className="space-y-5 animate-in fade-in">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5865F2]/15 text-[#5865F2]">
-              <DiscordLogoIcon size={32} color="#5865F2" />
-            </div>
-
+          <div className="space-y-6 animate-in fade-in pt-2">
             <div>
               <h1 className="text-xl font-black uppercase tracking-wide text-white">
                 Inicia Sesión con Discord
               </h1>
-              <p className="mt-1.5 text-xs text-[#C0B9AB] leading-relaxed">
-                Para acceder al Dashboard Administrativo, debes verificar que posees uno de los roles autorizados en Discord.
+              <p className="mt-2 text-xs text-[#C0B9AB] leading-relaxed">
+                Para acceder al Dashboard Administrativo, debes validar que perteneces al Staff del servidor de Discord de LATAM COMPANY.
               </p>
             </div>
 
-            {/* Display required roles badge */}
-            <div className="p-3.5 rounded-xl border border-white/10 bg-black/30 text-left space-y-2 text-xs">
-              <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
-                Roles de Discord Requeridos:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {AUTHORIZED_DISCORD_ROLES.map(r => (
-                  <span key={r.id} className="px-2.5 py-1 rounded-md bg-[#5865F2]/20 border border-[#5865F2]/40 text-white font-mono text-[11px] font-bold">
-                    {r.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Select staff account */}
-            <div className="space-y-2 pt-1 text-left">
-              <label className="text-[11px] font-bold text-slate-400 block uppercase tracking-wider">
-                Selecciona tu Cuenta de Discord:
-              </label>
-              <select
-                value={selectedStaffUser?.steamID || ""}
-                onChange={(e) => {
-                  const found = staffUsers.find(s => s.steamID === e.target.value);
-                  if (found) setSelectedStaffUser(found);
-                }}
-                className="w-full h-10 rounded-xl border border-white/15 bg-[#141821] px-3 font-mono text-xs font-bold text-white outline-none cursor-pointer"
-              >
-                {staffUsers.map((u) => (
-                  <option key={u.steamID} value={u.steamID}>
-                    {u.lastName ? u.lastName.trim() : u.steamID} ({u.groups || "Admin"})
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <button
-              onClick={() => handleDiscordOAuthLogin(selectedStaffUser)}
+              onClick={() => handleDiscordOAuthLogin()}
               disabled={isLoadingStaff}
               className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] px-5 py-3.5 text-xs font-mono font-extrabold uppercase tracking-wider text-white transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg disabled:opacity-50"
             >
