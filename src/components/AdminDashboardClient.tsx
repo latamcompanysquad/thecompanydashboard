@@ -967,8 +967,8 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
       ];
 
   const rawHeatmap = liveReport?.heatmapDataMap;
-  const HEATMAP_HOURS = ["15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00"];
-  const HOUR_INDICES = [15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2];
+  const HEATMAP_HOURS = ["12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00", "03:00", "04:00"];
+  const HOUR_INDICES = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4];
 
   const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
   const HEATMAP_DATA: Record<string, number[]> = {};
@@ -978,7 +978,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
     if (full24.length === 24) {
       HEATMAP_DATA[dKey] = HOUR_INDICES.map((hIdx) => full24[hIdx] ?? 0);
     } else {
-      HEATMAP_DATA[dKey] = [41, 48, 55, 62, 75, 88, 92, 94, 96, 78, 45, 22];
+      HEATMAP_DATA[dKey] = HOUR_INDICES.map(() => 0);
     }
   });
 
@@ -1163,7 +1163,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3 dark:border-white/10 border-[#C0B9AB]/40">
           <div className="flex items-center gap-2">
             <Flame className="h-5 w-5 text-[#F17633]" />
-            <h3 className="text-base font-bold">Heatmap de Concurrencia 15:00–02:00 ART (Jugadores Avg)</h3>
+            <h3 className="text-base font-bold">Heatmap de Concurrencia 12:00–04:00 ART (Jugadores Avg)</h3>
           </div>
 
           <div className="flex items-center gap-2 text-[10px] font-mono font-semibold">
