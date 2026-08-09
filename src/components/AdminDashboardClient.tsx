@@ -902,99 +902,150 @@ function SalezyExactArcGauge({
 
 {/* DISCORD SERVER REPORT EMBED WIDGET */}
 function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
-  const [reportsData, setReportsData] = useState({
-    totalMatches: 350,
-    totalPlayers: 4925,
-    avgMatchDuration: "55m",
-    avgPlayerPlaytime: "5h 54m",
-    totalScoreboardSessions: 31602,
-    topMap: "Narva",
-    topMapMatches: 37,
-    topLayer: "Fallujah RAAS v1",
-    topLayerMatches: 27,
-    peakHoursPerDay: "7.1h",
-    longestMatch: "1h 54m",
-    isLive: false,
-  });
+  const [totalMatches, setTotalMatches] = useState<number>(346);
+  const [topMapsList, setTopMapsList] = useState<Array<{ map: string; matches: number }>>([
+    { map: "Narva", matches: 37 },
+    { map: "Mutaha", matches: 36 },
+    { map: "Fallujah", matches: 27 },
+    { map: "Yehorivka", matches: 25 },
+    { map: "Al Basrah", matches: 23 },
+    { map: "Black Coast", matches: 21 },
+    { map: "Gorodok", matches: 21 },
+    { map: "Manicouagan", matches: 21 },
+  ]);
+  const [topFactionsList, setTopFactionsList] = useState<Array<{ faction: string; wins: number; percent: number }>>([
+    { faction: "Armed Forces of Ukraine", wins: 83, percent: 24 },
+    { faction: "Western Private Military Contractors", wins: 70, percent: 20 },
+    { faction: "Russian Ground Forces", wins: 65, percent: 19 },
+  ]);
+  const [topPlayersList, setTopPlayersList] = useState<Array<any>>([
+    { lastName: "[LC] Nagel30", totalScore: 59366, role: "Táctico", ranking: "Veterano" },
+    { lastName: "[LC] marville", totalScore: 45562, role: "Asesino", ranking: "Fuego III" },
+    { lastName: "Sillux", totalScore: 45262, role: "Promedio", ranking: "Fuego II" },
+  ]);
+  const [topKillstreak, setTopKillstreak] = useState<{ name: string; value: number }>({ name: "[LC] LMati✈", value: 59 });
+  const [topVehicleDestroyer, setTopVehicleDestroyer] = useState<{ name: string; value: number }>({ name: "[WASD] Misclip3", value: 1359 });
+  const [topMedic, setTopMedic] = useState<{ name: string; value: number }>({ name: "[LPVG] Burgue", value: 699 });
+  const [topInfantryKiller, setTopInfantryKiller] = useState<{ name: string; value: number }>({ name: "[WASD] Misclip3", value: 2844 });
+  const [bestDistance, setBestDistance] = useState<{ name: string; value: number }>({ name: "[NOW] Wafino", value: 1658 });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchAllTimeReports() {
+    async function fetchRealServerReports() {
+      setIsLoading(true);
       try {
-        const [totalMatchesRes, topPlayersRes] = await Promise.all([
+        const [
+          totalMatchesRes,
+          topMapsRes,
+          topFactionsRes,
+          topPlayersRes,
+          topKillstreaksRes,
+          topVehicleRes,
+          topMedicsRes,
+          topInfantryRes,
+          bestDistanceRes
+        ] = await Promise.all([
           fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/total-matches"),
-          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-players")
+          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-maps"),
+          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-factions"),
+          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-players"),
+          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-killstreaks"),
+          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-vehicle-destroyers"),
+          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-medics"),
+          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-infantry-killers"),
+          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/best-kill-distances")
         ]);
 
-        let matchesCount = 350;
+        let matchesCount = 346;
         if (totalMatchesRes.ok) {
           const tmData = await totalMatchesRes.json();
-          if (tmData.total) {
-            matchesCount = Math.max(350, tmData.total);
+          if (tmData.total) matchesCount = tmData.total;
+        }
+        setTotalMatches(matchesCount);
+
+        if (topMapsRes.ok) {
+          const mapsData = await topMapsRes.json();
+          if (Array.isArray(mapsData.maps)) {
+            setTopMapsList(mapsData.maps);
           }
         }
 
-        let playersCount = 4925;
+        if (topFactionsRes.ok) {
+          const facData = await topFactionsRes.json();
+          if (Array.isArray(facData.factions)) {
+            const formatted = facData.factions.map((f: any) => ({
+              faction: f.faction,
+              wins: f.matches,
+              percent: Math.round((f.matches / (matchesCount || 346)) * 100)
+            }));
+            setTopFactionsList(formatted);
+          }
+        }
+
         if (topPlayersRes.ok) {
           const tpData = await topPlayersRes.json();
-          if (Array.isArray(tpData.players) && tpData.players.length > 0) {
-            playersCount = Math.max(4925, tpData.players.length * 492);
+          if (Array.isArray(tpData.players)) {
+            setTopPlayersList(tpData.players);
           }
         }
 
-        setReportsData({
-          totalMatches: matchesCount,
-          totalPlayers: playersCount,
-          avgMatchDuration: "55m",
-          avgPlayerPlaytime: "5h 54m",
-          totalScoreboardSessions: Math.round(matchesCount * 90.3),
-          topMap: "Narva",
-          topMapMatches: Math.round(matchesCount * 0.105),
-          topLayer: "Fallujah RAAS v1",
-          topLayerMatches: Math.round(matchesCount * 0.077),
-          peakHoursPerDay: "7.1h",
-          longestMatch: "1h 54m",
-          isLive: true,
-        });
+        if (topKillstreaksRes.ok) {
+          const ksData = await topKillstreaksRes.json();
+          if (Array.isArray(ksData.players) && ksData.players.length > 0) {
+            setTopKillstreak({ name: ksData.players[0].lastName, value: ksData.players[0].bestKillstreak });
+          }
+        }
+
+        if (topVehicleRes.ok) {
+          const vehData = await topVehicleRes.json();
+          if (Array.isArray(vehData.players) && vehData.players.length > 0) {
+            setTopVehicleDestroyer({ name: vehData.players[0].lastName, value: vehData.players[0].vehicleKills });
+          }
+        }
+
+        if (topMedicsRes.ok) {
+          const medData = await topMedicsRes.json();
+          if (Array.isArray(medData.players) && medData.players.length > 0) {
+            setTopMedic({ name: medData.players[0].lastName, value: medData.players[0].revives });
+          }
+        }
+
+        if (topInfantryRes.ok) {
+          const infData = await topInfantryRes.json();
+          if (Array.isArray(infData.players) && infData.players.length > 0) {
+            setTopInfantryKiller({ name: infData.players[0].lastName, value: infData.players[0].infantryKills });
+          }
+        }
+
+        if (bestDistanceRes.ok) {
+          const distData = await bestDistanceRes.json();
+          if (Array.isArray(distData.infantry) && distData.infantry.length > 0) {
+            setBestDistance({ name: distData.infantry[0].lastName, value: distData.infantry[0].distance });
+          }
+        }
       } catch (e) {
-        console.warn("Using offline all-time report snapshot:", e);
+        console.warn("Using offline stats snapshot:", e);
+      } finally {
+        setIsLoading(false);
       }
     }
 
-    fetchAllTimeReports();
+    fetchRealServerReports();
   }, []);
 
   const SUMMARY_KPI_CARDS = [
-    { title: "Jugadores Únicos Activos", value: reportsData.totalPlayers.toLocaleString(), icon: Users, color: "#F17633", badge: "Población Histórica" },
-    { title: "Partidas Completadas", value: reportsData.totalMatches.toLocaleString(), icon: PlayCircle, color: "#294C74", badge: "Historial Registrado" },
-    { title: "Duración Promedio / Partida", value: reportsData.avgMatchDuration, icon: Clock, color: "#69989E", badge: "Promedio All-Time" },
-    { title: "Tiempo Juego Avg / Jugador", value: reportsData.avgPlayerPlaytime, icon: Award, color: "#A4C1A8", badge: "Histórico de Permanencia" },
-    { title: "Sesiones en Scoreboards", value: reportsData.totalScoreboardSessions.toLocaleString(), icon: FileText, color: "#C4A78D", badge: "Registros en DB" },
-    { title: "Mapa Más Jugado", value: reportsData.topMap, icon: Globe, color: "#F17633", badge: `${reportsData.topMapMatches} partidas registradas` },
-    { title: "Layer Más Jugada", value: reportsData.topLayer, icon: Shield, color: "#294C74", badge: `${reportsData.topLayerMatches} partidas registradas` },
-    { title: "Hrs/Día con 50+ Jugadores", value: reportsData.peakHoursPerDay, icon: Flame, color: "#F17633", badge: "Promedio de Concurrencia" },
-    { title: "Partida Más Larga", value: reportsData.longestMatch, icon: Trophy, color: "#A4C1A8", badge: "Récord Histórico" },
+    { title: "Partidas Completadas", value: totalMatches.toLocaleString(), icon: PlayCircle, color: "#294C74", badge: "Historial de DB" },
+    { title: "Mapa Más Jugado", value: topMapsList[0]?.map || "Narva", icon: Globe, color: "#F17633", badge: `${topMapsList[0]?.matches || 37} partidas registradas` },
+    { title: "Facción Más Victoriosa", value: topFactionsList[0]?.faction || "Armed Forces of Ukraine", icon: Shield, color: "#294C74", badge: `${topFactionsList[0]?.wins || 83} victorias` },
+    { title: "Mejor Racha de Bajas", value: topKillstreak.name, icon: Flame, color: "#F17633", badge: `${topKillstreak.value} bajas consecutivas` },
+    { title: "Top Médico del Servidor", value: topMedic.name, icon: Award, color: "#A4C1A8", badge: `${topMedic.value} reanimaciones` },
+    { title: "Destructor de Vehículos", value: topVehicleDestroyer.name, icon: Clock, color: "#69989E", badge: `${topVehicleDestroyer.value} vehículos` },
+    { title: "Mayor Asesino Infantería", value: topInfantryKiller.name, icon: Users, color: "#C4A78D", badge: `${topInfantryKiller.value} bajas de infantería` },
+    { title: "Tiro a Mayor Distancia", value: bestDistance.name, icon: Trophy, color: "#A4C1A8", badge: `${bestDistance.value}m de distancia` },
+    { title: "Jugador Más Valioso", value: topPlayersList[0]?.lastName || "[LC] Nagel30", icon: FileText, color: "#F17633", badge: `${topPlayersList[0]?.totalScore?.toLocaleString() || "59,366"} pts` },
   ];
 
-  const TEAM_VICTORIES = [
-    { faction: "49th Combined Arms Army", wins: 22, percent: 6 },
-    { faction: "Manticore Security Task Force", wins: 19, percent: 5 },
-    { faction: "21st Division", wins: 15, percent: 4 },
-    { faction: "3rd Division Battle Group", wins: 15, percent: 4 },
-    { faction: "58th Motorized Brigade", wins: 15, percent: 4 },
-    { faction: "11th Army Corps", wins: 14, percent: 4 },
-    { faction: "1st Infantry Division", wins: 13, percent: 4 },
-    { faction: "1st Separate Guards Brigade", wins: 12, percent: 3 },
-    { faction: "112th Medium Combined Arms Brigade", wins: 10, percent: 3 },
-    { faction: "Irregular Battle Group", wins: 10, percent: 3 },
-  ];
 
-  const TOP_HOURS_DATA = [
-    { hour: "21:00 ART", avg: 84, peak: 92 },
-    { hour: "22:00 ART", avg: 84, peak: 94 },
-    { hour: "23:00 ART", avg: 81, peak: 96 },
-    { hour: "20:00 ART", avg: 78, peak: 94 },
-    { hour: "19:00 ART", avg: 63, peak: 86 },
-  ];
 
   const HEATMAP_HOURS = ["15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00"];
   const HEATMAP_DATA: Record<string, number[]> = {
@@ -1025,19 +1076,24 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
             <span className="p-2 rounded-xl bg-[#F17633]/15 text-[#F17633]">
               <BarChart2 className="h-5 w-5" />
             </span>
-            <h2 className="text-xl font-black tracking-tight">Reportes del Servidor (Historial Completo)</h2>
+            <h2 className="text-xl font-black tracking-tight">Reportes Oficiales del Servidor</h2>
             <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-[#A4C1A8]/20 text-[#294C74] dark:text-[#A4C1A8]">
               ART (UTC-3)
             </span>
+            {isLoading && (
+              <span className="animate-pulse text-[10px] font-mono px-2 py-0.5 rounded bg-[#F17633]/20 text-[#F17633]">
+                Consultando BD en vivo...
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 font-medium">
-            Estadísticas agregadas en tiempo real de partidas completadas, victorias por facción, horas pico y heatmap de concurrencia.
+            Estadísticas agregadas en tiempo real de partidas completadas, mapa más jugado, victorias por facción y récords de jugadores.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-xs font-mono font-semibold px-3 py-1.5 rounded-xl border border-[#F17633]/40 bg-[#F17633]/10 text-[#F17633]">
-            📅 Historial Completo (All-Time Data)
+            📅 Historial Completo (Base de Datos)
           </span>
           <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F17633] text-white font-bold text-xs hover:bg-[#d96222] transition-colors cursor-pointer shadow-xs">
             <Download className="h-4 w-4" />
@@ -1050,7 +1106,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
       <div>
         <h3 className={`text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2 ${isDark ? "text-slate-300" : "text-[#294C74]"}`}>
           <FileText className="h-4 w-4 text-[#F17633]" />
-          <span>Resumen General del Período</span>
+          <span>Resumen General del Servidor (Datos Reales)</span>
         </h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1084,23 +1140,23 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
         </div>
       </div>
 
-      {/* Grid Row: Victorias por Equipo + Horarios de Actividad */}
+      {/* Grid Row: Victorias por Equipo + Mapas Más Jugados */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* Left 7 Cols: 🏆 Victorias por Equipo (Facciones) */}
+        {/* Left 7 Cols: 🏆 Victorias por Equipo (Facciones Reales) */}
         <div className={`lg:col-span-7 rounded-2xl border p-6 space-y-4 ${
           isDark ? "bg-[#1B212D] border-[#53565A]/40 text-white" : "bg-[#F8F5F1] border-[#C0B9AB]/60 text-[#294C74] shadow-xs"
         }`}>
           <div className="flex items-center justify-between border-b pb-3 dark:border-white/10 border-[#C0B9AB]/40">
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-[#F17633]" />
-              <h3 className="text-base font-bold">Victorias por Equipo (Facciones)</h3>
+              <h3 className="text-base font-bold">Victorias por Equipo (Facciones Reales)</h3>
             </div>
-            <span className="text-xs font-mono font-bold text-slate-400">Total: 350 partidas</span>
+            <span className="text-xs font-mono font-bold text-slate-400">Total: {totalMatches} partidas</span>
           </div>
 
           <div className="space-y-3">
-            {TEAM_VICTORIES.map((v, i) => (
+            {topFactionsList.map((v, i) => (
               <div key={i} className="space-y-1">
                 <div className="flex items-center justify-between text-xs font-sans font-semibold">
                   <span className={isDark ? "text-slate-200" : "text-[#294C74]"}>{v.faction}</span>
@@ -1110,7 +1166,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
                   <div 
                     className="h-full rounded-full transition-all duration-500"
                     style={{ 
-                      width: `${(v.wins / 22) * 100}%`,
+                      width: `${(v.wins / (topFactionsList[0]?.wins || 1)) * 100}%`,
                       backgroundColor: i === 0 ? "#F17633" : i < 3 ? "#294C74" : "#69989E"
                     }}
                   />
@@ -1120,59 +1176,34 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
           </div>
         </div>
 
-        {/* Right 5 Cols: ⏰ Horarios de Actividad & Top 5 Horas */}
-        <div className={`lg:col-span-5 rounded-2xl border p-6 space-y-6 ${
+        {/* Right 5 Cols: 🗺️ Mapas Más Jugados en el Servidor */}
+        <div className={`lg:col-span-5 rounded-2xl border p-6 space-y-4 ${
           isDark ? "bg-[#1B212D] border-[#53565A]/40 text-white" : "bg-[#F8F5F1] border-[#C0B9AB]/60 text-[#294C74] shadow-xs"
         }`}>
-          <div className="flex items-center gap-2 border-b pb-3 dark:border-white/10 border-[#C0B9AB]/40">
-            <Clock className="h-5 w-5 text-[#F17633]" />
-            <h3 className="text-base font-bold">Horarios de Actividad (ART)</h3>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 font-sans text-xs">
-            <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-medium block">🔥 Hora Pico</span>
-              <span className="font-bold text-sm text-[#F17633] block">23:00 ART</span>
-              <span className="text-[10px] text-slate-400 block">96 jugadores avg</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-medium block">📅 Día Pico</span>
-              <span className="font-bold text-sm text-[#294C74] dark:text-white block">Viernes</span>
-              <span className="text-[10px] text-slate-400 block">Máxima concurrencia</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-medium block">🟢 Rango Activo (20+)</span>
-              <span className="font-bold text-sm text-[#A4C1A8] block">15:00 – 23:59 ART</span>
-              <span className="text-[10px] text-slate-400 block">Horario de partida</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-100 dark:bg-white/5 space-y-0.5">
-              <span className="text-[10px] text-slate-400 font-medium block">⏱️ Hrs/Día (50+ jug)</span>
-              <span className="font-bold text-sm text-[#69989E] block">7.1 hrs (avg)</span>
-              <span className="text-[10px] text-slate-400 block">Servidor lleno</span>
+          <div className="flex items-center justify-between border-b pb-3 dark:border-white/10 border-[#C0B9AB]/40">
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-[#F17633]" />
+              <h3 className="text-base font-bold">Mapas Más Jugados (Base de Datos)</h3>
             </div>
           </div>
 
-          {/* Top 5 Horas Table */}
-          <div className="space-y-2 pt-2">
-            <span className="text-xs font-bold text-slate-400 block">Top 5 Horas (Promedio semanal vs Pico del período)</span>
-            <div className="rounded-xl border dark:border-white/10 border-[#C0B9AB]/40 overflow-hidden font-mono text-xs">
-              {TOP_HOURS_DATA.map((row, idx) => (
-                <div 
-                  key={idx} 
-                  className={`flex items-center justify-between px-3 py-2.5 border-b last:border-b-0 ${
-                    isDark ? "border-white/5 hover:bg-white/5" : "border-[#C0B9AB]/30 hover:bg-slate-100/60"
-                  }`}
-                >
-                  <span className="font-bold text-[#F17633]">{row.hour}</span>
-                  <span className="text-slate-400 text-[11px]">
-                    avg <strong className={isDark ? "text-white" : "text-[#294C74]"}>{row.avg}</strong> • pico <strong className="text-[#F17633]">{row.peak}</strong>
-                  </span>
+          <div className="space-y-2 font-mono text-xs">
+            {topMapsList.slice(0, 8).map((m, idx) => (
+              <div 
+                key={idx}
+                className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
+                  isDark ? "bg-white/5 border-white/5" : "bg-white border-[#C0B9AB]/40 shadow-2xs"
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold font-sans">
+                  <span className="text-[#F17633]">#{idx + 1}</span>
+                  <span className={isDark ? "text-white" : "text-[#294C74]"}>{m.map}</span>
                 </div>
-              ))}
-            </div>
+                <span className="text-slate-400 font-mono text-[11px]">
+                  <strong className="text-[#F17633]">{m.matches}</strong> partidas
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
