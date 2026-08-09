@@ -956,24 +956,31 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
         { faction: "Australian Defence Force", wins: 18, percent: 6 },
       ];
 
-  const TOP_HOURS_DATA = [
-    { hour: "21:00 ART", avg: 84, peak: 92 },
-    { hour: "22:00 ART", avg: 84, peak: 94 },
-    { hour: "23:00 ART", avg: 81, peak: 96 },
-    { hour: "20:00 ART", avg: 78, peak: 94 },
-    { hour: "19:00 ART", avg: 63, peak: 86 },
-  ];
+  const TOP_HOURS_DATA = liveReport?.topHoursData && liveReport.topHoursData.length > 0
+    ? liveReport.topHoursData
+    : [
+        { hour: "21:00 ART", avg: 98, peak: 100 },
+        { hour: "22:00 ART", avg: 98, peak: 100 },
+        { hour: "19:00 ART", avg: 98, peak: 100 },
+        { hour: "20:00 ART", avg: 98, peak: 100 },
+        { hour: "23:00 ART", avg: 98, peak: 100 },
+      ];
 
+  const rawHeatmap = liveReport?.heatmapDataMap;
   const HEATMAP_HOURS = ["15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00", "01:00", "02:00"];
-  const HEATMAP_DATA: Record<string, number[]> = {
-    "Dom": [41, 48, 55, 62, 75, 88, 92, 94, 96, 78, 45, 22],
-    "Lun": [20, 26, 32, 45, 63, 78, 84, 84, 81, 62, 30, 15],
-    "Mar": [9, 14, 22, 38, 55, 72, 80, 82, 78, 55, 25, 10],
-    "Mié": [17, 21, 30, 42, 58, 75, 82, 84, 80, 58, 28, 12],
-    "Jue": [9, 15, 25, 40, 60, 76, 83, 85, 81, 60, 26, 11],
-    "Vie": [32, 40, 50, 68, 86, 94, 92, 94, 96, 85, 52, 28],
-    "Sáb": [52, 60, 70, 82, 90, 95, 96, 96, 95, 88, 60, 35],
-  };
+  const HOUR_INDICES = [15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2];
+
+  const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const HEATMAP_DATA: Record<string, number[]> = {};
+
+  DAYS.forEach((dKey) => {
+    const full24 = rawHeatmap?.[dKey] || [];
+    if (full24.length === 24) {
+      HEATMAP_DATA[dKey] = HOUR_INDICES.map((hIdx) => full24[hIdx] ?? 0);
+    } else {
+      HEATMAP_DATA[dKey] = [41, 48, 55, 62, 75, 88, 92, 94, 96, 78, 45, 22];
+    }
+  });
 
   const getHeatmapColor = (val: number) => {
     if (val >= 85) return isDark ? "bg-[#F17633] text-white font-bold" : "bg-[#F17633] text-white font-bold";
@@ -1130,7 +1137,7 @@ function ServerReportsWidget({ isDark = false }: { isDark?: boolean }) {
           <div className="space-y-2 pt-2">
             <span className="text-xs font-bold text-slate-400 block">Top 5 Horas (Promedio semanal vs Pico del período)</span>
             <div className="rounded-xl border dark:border-white/10 border-[#C0B9AB]/40 overflow-hidden font-mono text-xs">
-              {TOP_HOURS_DATA.map((row, idx) => (
+              {TOP_HOURS_DATA.map((row: { hour: string; avg: number; peak: number }, idx: number) => (
                 <div 
                   key={idx} 
                   className={`flex items-center justify-between px-3 py-2.5 border-b last:border-b-0 ${
