@@ -2593,28 +2593,26 @@ export function AdminDashboardClient({
                   return { day: hourStr, jugadores: base.p, cola: base.q };
                 });
 
-                // Generate dynamic rolling 30-day window ending at today
+                // Generate dynamic rolling 30-day window ending at current date
+                const todayObj = new Date();
+                const monthNamesEs = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
                 const rolling30dData = Array.from({ length: 30 }).map((_, i) => {
-                  const pastDays = 29 - i;
-                  const d = new Date();
-                  d.setDate(d.getDate() - pastDays);
-                  
-                  const dayNum = d.getDate().toString().padStart(2, '0');
-                  const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-                  const monthStr = monthNames[d.getMonth()];
-                  const dateStr = `${dayNum} ${monthStr}`;
+                  const daysAgo = 29 - i;
+                  const d = new Date(todayObj);
+                  d.setDate(todayObj.getDate() - daysAgo);
+
+                  const dayLabel = `${d.getDate().toString().padStart(2, '0')} ${monthNamesEs[d.getMonth()]}`;
                   const isToday = i === 29;
 
                   if (isToday) {
-                    return { day: dateStr, jugadores: livePlayers, cola: liveQueue };
+                    return { day: dayLabel, jugadores: livePlayers, cola: liveQueue };
                   }
 
-                  const dayOfWeek = d.getDay();
-                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                  const basePlayers = isWeekend ? Math.min(98, 92 + (i % 7)) : Math.min(98, 80 + (i % 12));
-                  const baseQueue = isWeekend ? Math.floor(14 + (i % 6)) : Math.floor(3 + (i % 5));
+                  const pseudoVar = ((d.getDate() * 7 + d.getMonth() * 11) % 16);
+                  const historicPeakJugadores = Math.min(98, Math.max(72, 90 + pseudoVar - 6));
+                  const historicQueue = historicPeakJugadores > 90 ? Math.floor(pseudoVar * 1.1) : 0;
 
-                  return { day: dateStr, jugadores: basePlayers, cola: baseQueue };
+                  return { day: dayLabel, jugadores: historicPeakJugadores, cola: historicQueue };
                 });
 
                 return (
