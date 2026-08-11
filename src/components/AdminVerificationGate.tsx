@@ -168,12 +168,20 @@ export function AdminVerificationGate({
         ]
       };
 
-      // 1. Post DIRECTLY to the Discord Webhook URL
-      await fetch(DISCORD_WEBHOOK_URL, {
+      // 1. Post to Cloudflare Worker Bot API (uses official Bot Token DISCORD_BOT_TOKEN)
+      const res = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/send-2fa-discord", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(embedPayload)
+        body: JSON.stringify({
+          channelId: "1493674037677785178",
+          embedPayload
+        })
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "No se pudo enviar el código a través del Bot de Discord.");
+      }
 
       // 2. Log session to Cloudflare Worker
       await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/staff-sessions", {
@@ -185,18 +193,23 @@ export function AdminVerificationGate({
           ip_address: userIp,
           user_agent: navigator.userAgent,
           authorized: true,
-          action: "sent_2fa_webhook_embed",
+          action: "sent_2fa_bot_embed",
           embed_data: embedPayload
         })
       }).catch(() => {});
 
       setState("sent");
       setTimer(300); // 5 minute countdown timer
-    } catch (e) {
-      console.error("Error sending Discord webhook:", e);
+    } catch (e: any) {
+      console.error("Error sending Discord bot message:", e);
       setState("error");
-      setErrorMsg("Error enviando el código a Discord. Intenta de nuevo.");
+      setErrorMsg(e?.message || "Error enviando el código a Discord. Intenta de nuevo.");
     }
+  };
+
+  const handleRequestCodeDirectly = () => {
+    setAuthStep("verify");
+    sendCodeToDiscord();
   };
 
   const handleDigitChange = (value: string, index: number) => {
@@ -267,26 +280,40 @@ export function AdminVerificationGate({
 
         {/* STEP 1: DISCORD LOGIN */}
         {authStep === "login" && (
-          <div className="space-y-6 animate-in fade-in pt-2">
+          <div className="space-y-4 animate-in fade-in pt-2">
             <div>
               <h1 className="text-xl font-black uppercase tracking-wide text-white">
-                Inicia Sesión con Discord
+                Verificación de Seguridad 2FA
               </h1>
               <p className="mt-2 text-xs text-[#C0B9AB] leading-relaxed">
-                Para acceder al Dashboard Administrativo, debes validar que perteneces al Staff del servidor de Discord de LATAM COMPANY.
+                Para acceder al Dashboard Administrativo, solicita tu código de verificación de 6 dígitos enviado por el Bot Oficial a Discord.
               </p>
+            </div>
+
+            <button
+              onClick={handleRequestCodeDirectly}
+              className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-[#F17633] hover:bg-[#d66020] px-5 py-3.5 text-xs font-mono font-extrabold uppercase tracking-wider text-white transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg"
+            >
+              <KeyRound className="h-4 w-4" />
+              <span>Enviar Código 2FA a Discord</span>
+            </button>
+
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-[#53565A]/30"></div>
+              <span className="flex-shrink mx-3 text-[10px] uppercase font-mono text-[#C0B9AB]/60">o vía OAuth2</span>
+              <div className="flex-grow border-t border-[#53565A]/30"></div>
             </div>
 
             <button
               onClick={handleDiscordOAuthLogin}
               disabled={isLoadingStaff}
-              className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] px-5 py-3.5 text-xs font-mono font-extrabold uppercase tracking-wider text-white transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer shadow-lg disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-[#5865F2]/20 hover:bg-[#5865F2]/40 border border-[#5865F2]/40 px-5 py-3 text-xs font-mono font-bold uppercase tracking-wider text-white transition-all cursor-pointer disabled:opacity-50"
             >
               {isLoadingStaff ? (
                 <RotateCw className="h-4 w-4 animate-spin text-white" />
               ) : (
                 <>
-                  <DiscordLogoIcon size={18} color="#ffffff" />
+                  <DiscordLogoIcon size={16} color="#ffffff" />
                   <span>Iniciar Sesión con Discord</span>
                 </>
               )}
