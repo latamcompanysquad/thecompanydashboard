@@ -2849,7 +2849,7 @@ export function AdminDashboardClient({
                   { day: "20:00", jugadores: 98, cola: 14 },
                   { day: "21:00", jugadores: 97, cola: 11 },
                   { day: "22:00", jugadores: 94, cola: 8 },
-                  { day: "23:00", jugadores: 90, cola: 5 }
+                  { day: "Ahora", jugadores: livePlayers, cola: liveQueue }
                 ];
 
                 const static7dData = [
@@ -2859,19 +2859,19 @@ export function AdminDashboardClient({
                   { day: "Jue", jugadores: 96, cola: 10 },
                   { day: "Vie", jugadores: 98, cola: 14 },
                   { day: "Sáb", jugadores: 98, cola: 15 },
-                  { day: "Dom", jugadores: 97, cola: 12 }
+                  { day: "Hoy", jugadores: livePlayers, cola: liveQueue }
                 ];
 
                 const static15dData = Array.from({ length: 15 }).map((_, i) => ({
-                  day: `Día ${i + 1}`,
-                  jugadores: Math.min(98, 82 + (i % 5) * 4),
-                  cola: 3 + (i % 4) * 3
+                  day: i === 14 ? "Hoy" : `Día ${i + 1}`,
+                  jugadores: i === 14 ? livePlayers : Math.min(98, 82 + (i % 5) * 4),
+                  cola: i === 14 ? liveQueue : (3 + (i % 4) * 3)
                 }));
 
                 const static30dData = Array.from({ length: 30 }).map((_, i) => ({
-                  day: `${i + 1} Ago`,
-                  jugadores: Math.min(98, 78 + (i % 7) * 3),
-                  cola: 2 + (i % 5) * 2
+                  day: i === 29 ? "Hoy" : `${i + 1} Ago`,
+                  jugadores: i === 29 ? livePlayers : Math.min(98, 78 + (i % 7) * 3),
+                  cola: i === 29 ? liveQueue : (2 + (i % 5) * 2)
                 }));
 
                 const activeChartData = 
@@ -2904,7 +2904,7 @@ export function AdminDashboardClient({
                           
                           <div className="flex items-center gap-2 mt-1">
                             <span className="inline-flex items-center gap-1 rounded-md bg-[#A4C1A8]/20 px-2.5 py-1 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8] font-mono">
-                              (98/98+14) 100%
+                              ({livePlayers}/{maxPlayers}+{liveQueue}) {capacityPercentage}%
                             </span>
                           </div>
                         </div>
