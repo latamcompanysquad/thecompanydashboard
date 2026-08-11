@@ -495,9 +495,10 @@ function PrelineRealJsVectorMap({
     });
 
     // @ts-ignore
-    if (typeof window !== "undefined" && window.jsVectorMap) {
+    const VectorMapConstructor = jsVectorMap || (typeof window !== "undefined" && window.jsVectorMap);
+    if (typeof window !== "undefined" && VectorMapConstructor) {
       // @ts-ignore
-      mapInstanceRef.current = new window.jsVectorMap({
+      mapInstanceRef.current = new VectorMapConstructor({
         selector: mapElement,
         map: "world",
         zoomButtons: true,
@@ -768,14 +769,18 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
         <div className="lg:col-span-7 relative h-[400px] w-full flex items-center justify-center">
           {(() => {
             const mapData: Record<string, { name: string; flag: string; connections: string; community: string }> = {};
-            liveCountryTable.forEach((row) => {
-              mapData[row.code] = {
-                name: row.country,
-                flag: row.flag,
-                connections: row.visits,
-                community: row.purchases.replace("Jugadores: ", "")
-              };
-            });
+            if (Array.isArray(liveCountryTable)) {
+              liveCountryTable.forEach((row: any) => {
+                if (row && row.code) {
+                  mapData[row.code] = {
+                    name: row.country || "",
+                    flag: row.flag || "",
+                    connections: String(row.visits || row.rawVisits || 0),
+                    community: String(row.purchases || "").replace("Jugadores: ", "")
+                  };
+                }
+              });
+            }
             return (
               <PrelineRealJsVectorMap 
                 activeCountryCodes={allCountryCodes} 
