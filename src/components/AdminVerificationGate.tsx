@@ -172,7 +172,7 @@ export function AdminVerificationGate({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          channelId: "1493674037677785178",
+          channelId: "1535560774184079481",
           embedPayload
         })
       });
