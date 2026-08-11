@@ -570,22 +570,22 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
     avgEngagement: string;
     isLive: boolean;
   }>({
-    totalPlayers: 4925,
-    newPlayers: 312,
-    returningPlayers: 4613,
+    totalPlayers: 11755,
+    newPlayers: 752,
+    returningPlayers: 11003,
     avgEngagement: "55m",
     isLive: true,
   });
 
   const [liveCountryTable, setLiveCountryTable] = useState([
-    { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 1872, visits: "1,872", purchases: "Jugadores: 38%", change: "12.4%", isPositive: true },
-    { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 1380, visits: "1,380", purchases: "Jugadores: 28%", change: "8.2%", isPositive: true },
-    { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 591, visits: "591", purchases: "Jugadores: 12%", change: "5.1%", isPositive: true },
-    { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 443, visits: "443", purchases: "Jugadores: 9%", change: "2.3%", isPositive: false },
-    { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 246, visits: "246", purchases: "Jugadores: 5%", change: "4.8%", isPositive: true },
-    { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 148, visits: "148", purchases: "Jugadores: 3%", change: "1.9%", isPositive: true },
-    { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 98, visits: "98", purchases: "Jugadores: 2%", change: "0.5%", isPositive: false },
-    { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 49, visits: "49", purchases: "Jugadores: 1%", change: "0.2%", isPositive: false },
+    { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 4584, visits: "4,584", purchases: "Jugadores: 39.0%", change: "12.4%", isPositive: true },
+    { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 3291, visits: "3,291", purchases: "Jugadores: 28.0%", change: "8.2%", isPositive: true },
+    { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 1411, visits: "1,411", purchases: "Jugadores: 12.0%", change: "5.1%", isPositive: true },
+    { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 1058, visits: "1,058", purchases: "Jugadores: 9.0%", change: "2.3%", isPositive: true },
+    { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 588, visits: "588", purchases: "Jugadores: 5.0%", change: "4.8%", isPositive: true },
+    { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 353, visits: "353", purchases: "Jugadores: 3.0%", change: "1.9%", isPositive: true },
+    { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 235, visits: "235", purchases: "Jugadores: 2.0%", change: "0.5%", isPositive: true },
+    { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 118, visits: "118", purchases: "Jugadores: 1.0%", change: "0.2%", isPositive: true },
   ]);
 
   const [allCountryCodes, setAllCountryCodes] = useState<string[]>([
