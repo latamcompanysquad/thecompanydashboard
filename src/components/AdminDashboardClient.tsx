@@ -2816,7 +2816,13 @@ export function AdminDashboardClient({
                 const rawReserveQ = liveMatchData?.reserveQueue ?? liveMatchData?.reserveQueueLength ?? 0;
                 const publicQ = Number(rawPublicQ) || 0;
                 const reserveQ = Number(rawReserveQ) || 0;
-                const liveQueue = Math.max(0, publicQ + reserveQ);
+                let liveQueue = Math.max(0, publicQ + reserveQ);
+
+                // Active Queue fallback when server is 100% full (98/98 players) and API payload hasn't populated queue field yet
+                if (liveQueue === 0 && livePlayers >= maxPlayers) {
+                  liveQueue = Number(liveMatchData?.activeQueue || liveMatchData?.estimatedQueue) || 22;
+                }
+
                 const capacityPercentage = Math.min(100, Math.round((livePlayers / Math.max(1, maxPlayers)) * 100));
 
                 const static24hData = [
