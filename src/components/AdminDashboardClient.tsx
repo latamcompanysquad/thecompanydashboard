@@ -2134,7 +2134,7 @@ export function AdminDashboardClient({
       }
     }
     fetchLiveMatch();
-    const interval = setInterval(fetchLiveMatch, 15000);
+    const interval = setInterval(fetchLiveMatch, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -2810,10 +2810,11 @@ export function AdminDashboardClient({
 
               {/* SQUAD SMOOTH CONCURRENCY WAVE AREA CHART & CAPACITY GAUGE */}
               {(() => {
-                const livePlayers = liveMatchData?.a2sPlayerCount ?? liveMatchData?.players?.length ?? 94;
-                const maxPlayers = liveMatchData?.publicSlots ?? 98;
-                const rawQueue = Math.max(0, (liveMatchData?.publicQueue ?? 0) + (liveMatchData?.reserveQueue ?? 0));
-                const liveQueue = rawQueue;
+                const livePlayers = liveMatchData?.a2sPlayerCount ?? liveMatchData?.players?.length ?? 98;
+                const maxPlayers = liveMatchData?.publicSlots ?? liveMatchData?.maxSlots ?? 98;
+                const publicQ = liveMatchData?.publicQueue ?? liveMatchData?.publicQueueLength ?? 0;
+                const reserveQ = liveMatchData?.reserveQueue ?? liveMatchData?.reserveQueueLength ?? 0;
+                const liveQueue = Math.max(0, publicQ + reserveQ);
                 const capacityPercentage = Math.min(100, Math.round((livePlayers / Math.max(1, maxPlayers)) * 100));
 
                 const static24hData = [
