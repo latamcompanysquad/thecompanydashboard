@@ -588,6 +588,10 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
     { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 49, visits: "49", purchases: "Jugadores: 1%", change: "0.2%", isPositive: false },
   ]);
 
+  const [allCountryCodes, setAllCountryCodes] = useState<string[]>([
+    "AR", "CL", "UY", "BR", "CO", "PE", "MX", "US", "BO", "EC", "VE", "PY", "PA", "CR", "GT", "HN", "SV", "NI", "DO", "PR", "ES"
+  ]);
+
   useEffect(() => {
     async function fetchLiveServerStats() {
       try {
@@ -608,6 +612,11 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
               CO: "🇨🇴", PE: "🇵🇪", MX: "🇲🇽", US: "🇺🇸",
               ES: "🇪🇸", VE: "🇻🇪", EC: "🇪🇨", BO: "🇧🇴", PY: "🇵🇾"
             };
+
+            const extractedCodes = data.countries.map((c: any) => c.code).filter(Boolean);
+            if (extractedCodes.length > 0) {
+              setAllCountryCodes(Array.from(new Set([...extractedCodes, "AR", "CL", "UY", "BR", "CO", "PE", "MX", "US"])));
+            }
 
             const mappedTable = data.countries.map((c: any) => ({
               code: c.code,
@@ -743,7 +752,7 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
         {/* Left 7 Cols: Real Expansive JSVectorMap World Vector Map */}
         <div className="lg:col-span-7 relative h-[400px] w-full flex items-center justify-center">
           <PrelineRealJsVectorMap 
-            activeCountryCodes={["AR", "CL", "UY", "BR", "CO", "PE", "MX", "US", "BO", "EC", "VE", "PY", "PA", "CR", "GT", "HN", "SV", "NI", "DO", "PR", "ES"]} 
+            activeCountryCodes={allCountryCodes} 
           />
 
           <div className={`absolute bottom-2 left-2 border px-3 py-1.5 rounded-lg text-[10px] font-mono pointer-events-none ${
@@ -765,7 +774,7 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
               </tr>
             </thead>
             <tbody className={`divide-y ${isDark ? "divide-white/5" : "divide-[#C0B9AB]/30"}`}>
-              {liveCountryTable.map((row) => (
+              {liveCountryTable.slice(0, 8).map((row) => (
                 <tr 
                   key={row.code}
                   onMouseEnter={() => setHoveredCode(row.code)}
