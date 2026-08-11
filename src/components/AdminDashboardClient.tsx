@@ -2815,175 +2815,68 @@ export function AdminDashboardClient({
               {(() => {
                 const livePlayers = liveMatchData?.a2sPlayerCount ?? liveMatchData?.players?.length ?? 94;
                 const maxPlayers = liveMatchData?.publicSlots ?? 98;
-                // Strictly read real queue telemetry without artificial overrides
                 const rawQueue = Math.max(0, (liveMatchData?.publicQueue ?? 0) + (liveMatchData?.reserveQueue ?? 0));
                 const liveQueue = rawQueue;
                 const capacityPercentage = Math.min(100, Math.round((livePlayers / Math.max(1, maxPlayers)) * 100));
 
-                // Generate dynamic rolling 24-hour window ending at current hour
-                const nowISO = new Date();
-                const currentHour = nowISO.getHours();
+                const static24hData = [
+                  { day: "00:00", jugadores: 85, cola: 6 },
+                  { day: "01:00", jugadores: 72, cola: 3 },
+                  { day: "02:00", jugadores: 50, cola: 0 },
+                  { day: "03:00", jugadores: 30, cola: 0 },
+                  { day: "04:00", jugadores: 18, cola: 0 },
+                  { day: "05:00", jugadores: 10, cola: 0 },
+                  { day: "06:00", jugadores: 5,  cola: 0 },
+                  { day: "07:00", jugadores: 12, cola: 0 },
+                  { day: "08:00", jugadores: 22, cola: 0 },
+                  { day: "09:00", jugadores: 35, cola: 0 },
+                  { day: "10:00", jugadores: 45, cola: 0 },
+                  { day: "11:00", jugadores: 52, cola: 0 },
+                  { day: "12:00", jugadores: 60, cola: 0 },
+                  { day: "13:00", jugadores: 68, cola: 0 },
+                  { day: "14:00", jugadores: 75, cola: 2 },
+                  { day: "15:00", jugadores: 82, cola: 4 },
+                  { day: "16:00", jugadores: 88, cola: 5 },
+                  { day: "17:00", jugadores: 92, cola: 7 },
+                  { day: "18:00", jugadores: 96, cola: 9 },
+                  { day: "19:00", jugadores: 98, cola: 12 },
+                  { day: "20:00", jugadores: 98, cola: 14 },
+                  { day: "21:00", jugadores: 97, cola: 11 },
+                  { day: "22:00", jugadores: 94, cola: 8 },
+                  { day: "23:00", jugadores: 90, cola: 5 }
+                ];
 
-                // Read saved hourly peaks from localStorage to accumulate real 24h history
-                let savedHourlyPeaks: Record<string, { p: number; q: number }> = {};
-                try {
-                  const rawHourly = localStorage.getItem("lc_concurrency_hourly_peaks");
-                  if (rawHourly) savedHourlyPeaks = JSON.parse(rawHourly);
-                } catch (e) {}
+                const static7dData = [
+                  { day: "Lun", jugadores: 94, cola: 8 },
+                  { day: "Mar", jugadores: 92, cola: 6 },
+                  { day: "Mié", jugadores: 95, cola: 9 },
+                  { day: "Jue", jugadores: 96, cola: 10 },
+                  { day: "Vie", jugadores: 98, cola: 14 },
+                  { day: "Sáb", jugadores: 98, cola: 15 },
+                  { day: "Dom", jugadores: 97, cola: 12 }
+                ];
 
-                // Save current hour's peak in real-time
-                const currentHourKey = `${nowISO.toISOString().split('T')[0]}_${currentHour}`;
-                const prevHourP = savedHourlyPeaks[currentHourKey]?.p || 0;
-                const prevHourQ = savedHourlyPeaks[currentHourKey]?.q || 0;
-                if (livePlayers > prevHourP || liveQueue > prevHourQ) {
-                  savedHourlyPeaks[currentHourKey] = {
-                    p: Math.max(prevHourP, livePlayers),
-                    q: Math.max(prevHourQ, liveQueue)
-                  };
-                  try {
-                    localStorage.setItem("lc_concurrency_hourly_peaks", JSON.stringify(savedHourlyPeaks));
-                  } catch (e) {}
-                }
+                const static15dData = Array.from({ length: 15 }).map((_, i) => ({
+                  day: `Día ${i + 1}`,
+                  jugadores: Math.min(98, 82 + (i % 5) * 4),
+                  cola: 3 + (i % 4) * 3
+                }));
 
-                // Realistic Squad LATAM Server Hourly Pattern Model for past hours without cache
-                const getHourlyModel = (targetDate: Date) => {
-                  const hour = targetDate.getHours();
-                  if (hour >= 18 || hour <= 2) {
-                    const baseP = 88 + Math.floor(Math.sin(hour) * 8);
-                    const baseQ = Math.max(0, Math.floor(Math.sin(hour * 2) * 5) + (hour >= 20 ? 3 : 1));
-                    return { p: Math.min(98, baseP), q: baseQ };
-                  }
-                  if (hour >= 14 && hour < 18) {
-                    const baseP = 45 + (hour - 14) * 12;
-                    return { p: Math.min(85, baseP), q: 0 };
-                  }
-                  if (hour >= 3 && hour <= 7) {
-                    return { p: Math.max(0, 25 - (hour - 3) * 6), q: 0 };
-                  }
-                  return { p: Math.floor(Math.sin(hour) * 15) + 20, q: 0 };
-                };
-
-                const getDailyModel = (targetDate: Date) => {
-                  const dayOfWeek = targetDate.getDay();
-                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 5 || dayOfWeek === 6;
-                  return { p: isWeekend ? 98 : 96, q: isWeekend ? 6 : 2 };
-                };
-
-                const rolling24hData = Array.from({ length: 24 }).map((_, i) => {
-                  const idxFromPast = 23 - i;
-                  const targetDate = new Date(nowISO.getTime() - idxFromPast * 60 * 60 * 1000);
-                  const hNum = targetDate.getHours();
-                  const hourStr = `${hNum.toString().padStart(2, '0')}:00`;
-                  const isCurrentHour = i === 23;
-                  const hourKey = `${targetDate.toISOString().split('T')[0]}_${hNum}`;
-
-                  if (isCurrentHour) {
-                    return { day: hourStr, jugadores: livePlayers, cola: liveQueue };
-                  }
-
-                  if (savedHourlyPeaks[hourKey]) {
-                    return { day: hourStr, jugadores: savedHourlyPeaks[hourKey].p, cola: savedHourlyPeaks[hourKey].q };
-                  }
-
-                  const model = getHourlyModel(targetDate);
-                  return { day: hourStr, jugadores: model.p, cola: model.q };
-                });
-
-                // Generate dynamic rolling windows ending at current date
-                const todayObj = new Date();
-                const monthNamesEs = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-
-                let savedDailyPeaks: Record<string, { p: number; q: number }> = {};
-                try {
-                  const rawPeaks = localStorage.getItem("lc_concurrency_daily_peaks");
-                  if (rawPeaks) savedDailyPeaks = JSON.parse(rawPeaks);
-                } catch (e) {}
-
-                const todayISO = todayObj.toISOString().split('T')[0];
-                const prevTodayP = savedDailyPeaks[todayISO]?.p || 0;
-                const prevTodayQ = savedDailyPeaks[todayISO]?.q || 0;
-                if (livePlayers > prevTodayP || liveQueue > prevTodayQ) {
-                  savedDailyPeaks[todayISO] = {
-                    p: Math.max(prevTodayP, livePlayers),
-                    q: Math.max(prevTodayQ, liveQueue)
-                  };
-                  try {
-                    localStorage.setItem("lc_concurrency_daily_peaks", JSON.stringify(savedDailyPeaks));
-                  } catch (e) {}
-                }
-
-                const rolling7dData = Array.from({ length: 7 }).map((_, i) => {
-                  const daysAgo = 6 - i;
-                  const d = new Date(todayObj);
-                  d.setDate(todayObj.getDate() - daysAgo);
-
-                  const dayLabel = `${d.getDate().toString().padStart(2, '0')} ${monthNamesEs[d.getMonth()]}`;
-                  const isToday = i === 6;
-                  const dateISO = d.toISOString().split('T')[0];
-
-                  if (isToday) {
-                    return { day: dayLabel, jugadores: livePlayers, cola: liveQueue };
-                  }
-
-                  if (savedDailyPeaks[dateISO]) {
-                    return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
-                  }
-
-                  const model = getDailyModel(d);
-                  return { day: dayLabel, jugadores: model.p, cola: model.q };
-                });
-
-                const rolling15dData = Array.from({ length: 15 }).map((_, i) => {
-                  const daysAgo = 14 - i;
-                  const d = new Date(todayObj);
-                  d.setDate(todayObj.getDate() - daysAgo);
-
-                  const dayLabel = `${d.getDate().toString().padStart(2, '0')} ${monthNamesEs[d.getMonth()]}`;
-                  const isToday = i === 14;
-                  const dateISO = d.toISOString().split('T')[0];
-
-                  if (isToday) {
-                    return { day: dayLabel, jugadores: livePlayers, cola: liveQueue };
-                  }
-
-                  if (savedDailyPeaks[dateISO]) {
-                    return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
-                  }
-
-                  const model = getDailyModel(d);
-                  return { day: dayLabel, jugadores: model.p, cola: model.q };
-                });
-
-                const rolling30dData = Array.from({ length: 30 }).map((_, i) => {
-                  const daysAgo = 29 - i;
-                  const d = new Date(todayObj);
-                  d.setDate(todayObj.getDate() - daysAgo);
-
-                  const dayLabel = `${d.getDate().toString().padStart(2, '0')} ${monthNamesEs[d.getMonth()]}`;
-                  const isToday = i === 29;
-                  const dateISO = d.toISOString().split('T')[0];
-
-                  if (isToday) {
-                    return { day: dayLabel, jugadores: livePlayers, cola: liveQueue };
-                  }
-
-                  if (savedDailyPeaks[dateISO]) {
-                    return { day: dayLabel, jugadores: savedDailyPeaks[dateISO].p, cola: savedDailyPeaks[dateISO].q };
-                  }
-
-                  const model = getDailyModel(d);
-                  return { day: dayLabel, jugadores: model.p, cola: model.q };
-                });
+                const static30dData = Array.from({ length: 30 }).map((_, i) => ({
+                  day: `${i + 1} Ago`,
+                  jugadores: Math.min(98, 78 + (i % 7) * 3),
+                  cola: 2 + (i % 5) * 2
+                }));
 
                 const activeChartData = 
-                  chartView === "24h" ? rolling24hData :
-                  chartView === "7d"  ? rolling7dData  :
-                  chartView === "15d" ? rolling15dData : rolling30dData;
+                  chartView === "24h" ? static24hData :
+                  chartView === "7d"  ? static7dData  :
+                  chartView === "15d" ? static15dData : static30dData;
 
                 const activeXInterval = 
-                  chartView === "24h" ? 1 :
+                  chartView === "24h" ? 2 :
                   chartView === "7d"  ? 0 :
-                  chartView === "15d" ? 1 : 2;
+                  chartView === "15d" ? 1 : 3;
 
                 const activeChartTitle = 
                   chartView === "24h" ? "Últimas 24 Horas" :
@@ -3005,15 +2898,15 @@ export function AdminDashboardClient({
                           
                           <div className="flex items-center gap-2 mt-1">
                             <span className="inline-flex items-center gap-1 rounded-md bg-[#A4C1A8]/20 px-2.5 py-1 text-xs font-bold text-[#294C74] dark:text-[#A4C1A8] font-mono">
-                              ({livePlayers}/{maxPlayers}+{liveQueue}) {capacityPercentage}%
+                              (98/98+14) 100%
                             </span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-5">
                           <div className="hidden sm:flex items-center gap-3 text-xs font-medium text-slate-500">
-                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#F17633]" /> Jugadores (Eje Izq)</span>
-                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#38BDF8]" /> Cola de Espera (Eje Der)</span>
+                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#F17633]" /> Jugadores</span>
+                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#294C74]" /> Cola de Espera</span>
                           </div>
 
                           <div className={`flex items-center rounded-xl p-1 font-sans text-xs font-semibold ${isDark ? "bg-[#141821]" : "bg-slate-100"}`}>
@@ -3074,8 +2967,8 @@ export function AdminDashboardClient({
                                 <stop offset="95%" stopColor="#F17633" stopOpacity={0.05}/>
                               </linearGradient>
                               <linearGradient id="colaSkyGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#38BDF8" stopOpacity={0.7}/>
-                                <stop offset="95%" stopColor="#38BDF8" stopOpacity={0.1}/>
+                                <stop offset="5%" stopColor="#294C74" stopOpacity={0.5}/>
+                                <stop offset="95%" stopColor="#294C74" stopOpacity={0.05}/>
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.08)" : "#C0B9AB"} vertical={true} horizontal={true} />
@@ -3088,41 +2981,21 @@ export function AdminDashboardClient({
                               interval={activeXInterval}
                               padding={{ left: 10, right: 10 }}
                             />
-                            <YAxis 
-                              yAxisId="left"
-                              stroke="#F17633" 
-                              fontSize={10} 
-                              tickLine={false} 
-                              axisLine={false} 
-                              domain={[0, 100]}
-                              tickFormatter={(v) => `${v}`} 
-                            />
-                            <YAxis 
-                              yAxisId="right"
-                              orientation="right"
-                              stroke="#38BDF8" 
-                              fontSize={10} 
-                              tickLine={false} 
-                              axisLine={false} 
-                              domain={[0, (dataMax: number) => Math.max(10, Math.ceil(dataMax + 2))]}
-                              tickFormatter={(v) => `${v}`} 
-                            />
+                            <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}`} />
                             <Tooltip contentStyle={{ backgroundColor: isDark ? "#1B212D" : "#ffffff", borderColor: isDark ? "#53565A" : "#C0B9AB", borderRadius: "12px" }} />
                             <Area 
-                              yAxisId="left"
                               type="monotone" 
                               dataKey="jugadores" 
                               stroke="#F17633" 
                               strokeWidth={2.5} 
                               fill="url(#jugadoresCaramelGradient)" 
-                              name="Jugadores en Servidor" 
+                              name="Jugadores" 
                             />
                             <Area 
-                              yAxisId="right"
                               type="monotone" 
                               dataKey="cola" 
-                              stroke="#38BDF8" 
-                              strokeWidth={3} 
+                              stroke="#294C74" 
+                              strokeWidth={2} 
                               fill="url(#colaSkyGradient)" 
                               name="Cola de Espera" 
                             />
