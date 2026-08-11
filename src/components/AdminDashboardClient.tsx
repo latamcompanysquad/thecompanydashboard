@@ -3012,8 +3012,8 @@ export function AdminDashboardClient({
 
                         <div className="flex items-center gap-5">
                           <div className="hidden sm:flex items-center gap-3 text-xs font-medium text-slate-500">
-                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#F17633]" /> Jugadores</span>
-                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#294C74]" /> Cola de Espera</span>
+                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#F17633]" /> Jugadores (Eje Izq)</span>
+                            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-[#38BDF8]" /> Cola de Espera (Eje Der)</span>
                           </div>
 
                           <div className={`flex items-center rounded-xl p-1 font-sans text-xs font-semibold ${isDark ? "bg-[#141821]" : "bg-slate-100"}`}>
@@ -3074,8 +3074,8 @@ export function AdminDashboardClient({
                                 <stop offset="95%" stopColor="#F17633" stopOpacity={0.05}/>
                               </linearGradient>
                               <linearGradient id="colaSkyGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#294C74" stopOpacity={0.5}/>
-                                <stop offset="95%" stopColor="#294C74" stopOpacity={0.05}/>
+                                <stop offset="5%" stopColor="#38BDF8" stopOpacity={0.7}/>
+                                <stop offset="95%" stopColor="#38BDF8" stopOpacity={0.1}/>
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "rgba(255,255,255,0.08)" : "#C0B9AB"} vertical={true} horizontal={true} />
@@ -3088,9 +3088,28 @@ export function AdminDashboardClient({
                               interval={activeXInterval}
                               padding={{ left: 10, right: 10 }}
                             />
-                            <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}`} />
+                            <YAxis 
+                              yAxisId="left"
+                              stroke="#F17633" 
+                              fontSize={10} 
+                              tickLine={false} 
+                              axisLine={false} 
+                              domain={[0, 100]}
+                              tickFormatter={(v) => `${v}`} 
+                            />
+                            <YAxis 
+                              yAxisId="right"
+                              orientation="right"
+                              stroke="#38BDF8" 
+                              fontSize={10} 
+                              tickLine={false} 
+                              axisLine={false} 
+                              domain={[0, (dataMax: number) => Math.max(10, Math.ceil(dataMax + 2))]}
+                              tickFormatter={(v) => `${v}`} 
+                            />
                             <Tooltip contentStyle={{ backgroundColor: isDark ? "#1B212D" : "#ffffff", borderColor: isDark ? "#53565A" : "#C0B9AB", borderRadius: "12px" }} />
                             <Area 
+                              yAxisId="left"
                               type="monotone" 
                               dataKey="jugadores" 
                               stroke="#F17633" 
@@ -3099,10 +3118,11 @@ export function AdminDashboardClient({
                               name="Jugadores en Servidor" 
                             />
                             <Area 
+                              yAxisId="right"
                               type="monotone" 
                               dataKey="cola" 
-                              stroke="#294C74" 
-                              strokeWidth={2} 
+                              stroke="#38BDF8" 
+                              strokeWidth={3} 
                               fill="url(#colaSkyGradient)" 
                               name="Cola de Espera" 
                             />
