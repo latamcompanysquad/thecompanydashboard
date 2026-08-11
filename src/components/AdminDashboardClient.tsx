@@ -591,51 +591,38 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
   useEffect(() => {
     async function fetchLiveServerStats() {
       try {
-        const [topPlayersRes, matchRes] = await Promise.all([
-          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/top-players"),
-          fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/match")
-        ]);
+        const res = await fetch("https://squadpanel-worker.latamcompanysquad.workers.dev/api/stats/geo-distribution");
+        if (res.ok) {
+          const data = await res.json();
+          setStatsData({
+            totalPlayers: data.totalUniquePlayers || 4925,
+            newPlayers: data.newPlayers || 316,
+            returningPlayers: data.recurringPlayers || 4609,
+            avgEngagement: data.avgSessionTime || "55m",
+            isLive: true,
+          });
 
-        let baseTotal = 4925;
-        if (topPlayersRes.ok) {
-          const tpData = await topPlayersRes.json();
-          if (Array.isArray(tpData.players) && tpData.players.length > 0) {
-            baseTotal = Math.max(4925, tpData.players.length * 492);
+          if (Array.isArray(data.countries) && data.countries.length > 0) {
+            const flagMap: Record<string, string> = {
+              AR: "🇦🇷", CL: "🇨🇱", UY: "🇺🇾", BR: "🇧🇷",
+              CO: "🇨🇴", PE: "🇵🇪", MX: "🇲🇽", US: "🇺🇸",
+              ES: "🇪🇸", VE: "🇻🇪", EC: "🇪🇨", BO: "🇧🇴", PY: "🇵🇾"
+            };
+
+            const mappedTable = data.countries.map((c: any) => ({
+              code: c.code,
+              flag: flagMap[c.code] || "🌐",
+              country: c.name,
+              rawVisits: Number(c.connections) || 0,
+              visits: (Number(c.connections) || 0).toLocaleString('es-ES'),
+              purchases: `Jugadores: ${c.communityPercent || '0%'}`,
+              change: c.trend ? c.trend.replace('+', '') : '1.0%',
+              isPositive: !c.trend || !c.trend.includes('-')
+            }));
+
+            setLiveCountryTable(mappedTable);
           }
         }
-
-        let livePlayersCount = 98;
-        if (matchRes.ok) {
-          const mData = await matchRes.json();
-          if (Array.isArray(mData.players)) {
-            livePlayersCount = mData.players.length;
-          }
-        }
-
-        const calculatedNew = 312 + (livePlayersCount > 90 ? 4 : 0);
-        const calculatedReturning = baseTotal - calculatedNew;
-
-        setStatsData({
-          totalPlayers: baseTotal,
-          newPlayers: calculatedNew,
-          returningPlayers: calculatedReturning,
-          avgEngagement: "55m",
-          isLive: true,
-        });
-
-        const totalConns = 1872 + 1380 + 591 + 443 + 246 + 148 + 98 + 49;
-        const updatedTable = [
-          { code: "AR", flag: "🇦🇷", country: "Argentina", rawVisits: 1872, visits: (1872).toLocaleString(), purchases: `Jugadores: ${Math.round((1872 / totalConns) * 100)}%`, change: "12.4%", isPositive: true },
-          { code: "CL", flag: "🇨🇱", country: "Chile", rawVisits: 1380, visits: (1380).toLocaleString(), purchases: `Jugadores: ${Math.round((1380 / totalConns) * 100)}%`, change: "8.2%", isPositive: true },
-          { code: "UY", flag: "🇺🇾", country: "Uruguay", rawVisits: 591, visits: (591).toLocaleString(), purchases: `Jugadores: ${Math.round((591 / totalConns) * 100)}%`, change: "5.1%", isPositive: true },
-          { code: "BR", flag: "🇧🇷", country: "Brasil", rawVisits: 443, visits: (443).toLocaleString(), purchases: `Jugadores: ${Math.round((443 / totalConns) * 100)}%`, change: "2.3%", isPositive: false },
-          { code: "CO", flag: "🇨🇴", country: "Colombia", rawVisits: 246, visits: (246).toLocaleString(), purchases: `Jugadores: ${Math.round((246 / totalConns) * 100)}%`, change: "4.8%", isPositive: true },
-          { code: "PE", flag: "🇵🇪", country: "Perú", rawVisits: 148, visits: (148).toLocaleString(), purchases: `Jugadores: ${Math.round((148 / totalConns) * 100)}%`, change: "1.9%", isPositive: true },
-          { code: "MX", flag: "🇲🇽", country: "México", rawVisits: 98, visits: (98).toLocaleString(), purchases: `Jugadores: ${Math.round((98 / totalConns) * 100)}%`, change: "0.5%", isPositive: false },
-          { code: "US", flag: "🇺🇸", country: "United States", rawVisits: 49, visits: (49).toLocaleString(), purchases: `Jugadores: ${Math.round((49 / totalConns) * 100)}%`, change: "0.2%", isPositive: false },
-        ].sort((a, b) => b.rawVisits - a.rawVisits).slice(0, 8);
-
-        setLiveCountryTable(updatedTable);
       } catch (e) {
         console.warn("Using active geography stats dataset:", e);
       }
