@@ -2810,10 +2810,12 @@ export function AdminDashboardClient({
 
               {/* SQUAD SMOOTH CONCURRENCY WAVE AREA CHART & CAPACITY GAUGE */}
               {(() => {
-                const livePlayers = liveMatchData?.a2sPlayerCount ?? liveMatchData?.players?.length ?? 98;
-                const maxPlayers = liveMatchData?.publicSlots ?? liveMatchData?.maxSlots ?? 98;
-                const publicQ = liveMatchData?.publicQueue ?? liveMatchData?.publicQueueLength ?? 0;
-                const reserveQ = liveMatchData?.reserveQueue ?? liveMatchData?.reserveQueueLength ?? 0;
+                const livePlayers = Number(liveMatchData?.a2sPlayerCount ?? liveMatchData?.players?.length ?? 98);
+                const maxPlayers = Number(liveMatchData?.publicSlots ?? liveMatchData?.maxSlots ?? 98);
+                const rawPublicQ = liveMatchData?.publicQueue ?? liveMatchData?.publicQueueLength ?? liveMatchData?.queue ?? 0;
+                const rawReserveQ = liveMatchData?.reserveQueue ?? liveMatchData?.reserveQueueLength ?? 0;
+                const publicQ = Number(rawPublicQ) || 0;
+                const reserveQ = Number(rawReserveQ) || 0;
                 const liveQueue = Math.max(0, publicQ + reserveQ);
                 const capacityPercentage = Math.min(100, Math.round((livePlayers / Math.max(1, maxPlayers)) * 100));
 
