@@ -2598,17 +2598,17 @@ export function AdminDashboardClient({
                 <div className="space-y-1.5 pt-3 border-t border-slate-200 dark:border-white/10">
                   <div className="flex items-center justify-between px-1 mb-1">
                     <span className="block font-sans text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      STAFF DISCORD ({displayStaffList.filter(adm => adm.discordLinked && adm.status === "online").length})
+                      STAFF DISCORD ({displayStaffList.slice(0, 6).length})
                     </span>
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#5865F2]">
                       <DiscordLogoIcon size={12} color="#5865F2" /> Online
                     </span>
                   </div>
 
-                  {displayStaffList.filter(adm => adm.discordLinked && adm.status === "online").map((adm, idx) => {
-                    const avatarUrl = adm.avatarUrl || (adm.discord_id ? getDiscordAvatarUrl(adm.discord_id, adm.avatarHash) : `https://cdn.discordapp.com/embed/avatars/${idx % 5}.png`);
-                    const discordName = cleanDiscordName(adm.discordName || adm.name);
-                    const steamName = adm.steamName || adm.name;
+                  {displayStaffList.slice(0, 6).map((adm, idx) => {
+                    const avatarUrl = adm.avatarUrl || (adm.discord_id ? `https://unavatar.io/discord/${adm.discord_id}` : `https://cdn.discordapp.com/embed/avatars/${idx % 5}.png`);
+                    const discordName = adm.discordName || adm.name;
+                    const handleName = adm.handle || adm.steamName || `@${adm.name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                     return (
                       <div key={adm.name + idx} className="flex items-center justify-between px-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
                         <div className="flex items-center gap-2 min-w-0">
@@ -2618,7 +2618,7 @@ export function AdminDashboardClient({
                           </div>
                           <div className="flex flex-col truncate">
                             <span className={`text-[11px] font-bold truncate leading-tight ${isDark ? "text-slate-200" : "text-[#294C74]"}`}>{discordName}</span>
-                            <span className="text-[9px] text-slate-400 truncate">{steamName}</span>
+                            <span className="text-[9px] text-slate-400 truncate">{handleName}</span>
                           </div>
                         </div>
 
