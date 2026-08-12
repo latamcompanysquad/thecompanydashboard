@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-// @ts-ignore
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import jsVectorMap from "jsvectormap";
 import "jsvectormap/dist/maps/world-merc.js";
 import "jsvectormap/dist/jsvectormap.css";
@@ -449,12 +448,12 @@ const COUNTRY_TOOLTIP_MAP: Record<string, { name: string; flag: string; connecti
   PE: { name: "Perú", flag: "🇵🇪", connections: "353", community: "3.0%" },
   MX: { name: "México", flag: "🇲🇽", connections: "235", community: "2.0%" },
   US: { name: "United States", flag: "🇺🇸", connections: "118", community: "1.0%" },
-  BO: { name: "Bolivia", flag: "🇧🇴", connections: "32", community: "0.6%" },
-  EC: { name: "Ecuador", flag: "🇪🇨", connections: "24", community: "0.5%" },
-  VE: { name: "Venezuela", flag: "🇻🇪", connections: "18", community: "0.4%" },
-  PY: { name: "Paraguay", flag: "🇵🇾", connections: "14", community: "0.3%" },
-  PA: { name: "Panamá", flag: "🇵🇦", connections: "10", community: "0.2%" },
-  ES: { name: "España", flag: "🇪🇸", connections: "8", community: "0.2%" },
+  BO: { name: "Bolivia", flag: "🇧🇴", connections: "70", community: "0.6%" },
+  EC: { name: "Ecuador", flag: "🇪🇨", connections: "58", community: "0.5%" },
+  VE: { name: "Venezuela", flag: "🇻🇪", connections: "47", community: "0.4%" },
+  PY: { name: "Paraguay", flag: "🇵🇾", connections: "35", community: "0.3%" },
+  PA: { name: "Panamá", flag: "🇵🇦", connections: "24", community: "0.2%" },
+  ES: { name: "España", flag: "🇪🇸", connections: "24", community: "0.2%" },
 };
 
 const FINANCE_CASHFLOW = [
@@ -469,10 +468,10 @@ const FINANCE_CASHFLOW = [
 {/* OFFICIAL PRELINE REAL VECTOR MAP COMPONENT USING JSVECTORMAP */}
 function PrelineRealJsVectorMap({ 
   activeCountryCodes = ["AR", "CL", "UY", "BR", "CO", "PE", "MX", "US", "BO", "EC", "VE", "PY"],
-  tooltipDataMap
+  countryDataMap
 }: { 
   activeCountryCodes?: string[];
-  tooltipDataMap?: Record<string, { name: string; flag: string; connections: string; community: string }>;
+  countryDataMap?: Record<string, { name: string; flag: string; connections: string; community: string }>;
 }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -486,81 +485,72 @@ function PrelineRealJsVectorMap({
       } catch (e) {}
     }
 
-    const mapElement = mapContainerRef.current;
-    mapElement.innerHTML = "";
-
     const seriesValues: Record<string, string> = {};
     activeCountryCodes.forEach((code) => {
       seriesValues[code] = "active";
     });
 
-    // @ts-ignore
-    const VectorMapConstructor = jsVectorMap || (typeof window !== "undefined" && window.jsVectorMap);
-    if (typeof window !== "undefined" && VectorMapConstructor) {
-      // @ts-ignore
-      mapInstanceRef.current = new VectorMapConstructor({
-        selector: mapElement,
-        map: "world",
-        zoomButtons: true,
-        zoomOnScroll: false,
-        draggable: true,
-        regionStyle: {
-          initial: {
-            fill: "#53565A",
-            fillOpacity: 1,
-            stroke: "none",
-            strokeWidth: 0,
-            strokeOpacity: 0
-          },
-          hover: {
-            fill: "#69989E",
-            fillOpacity: 1,
-            cursor: "pointer"
-          },
-          selected: {
-            fill: "#F17633"
-          }
+    mapInstanceRef.current = new jsVectorMap({
+      selector: mapContainerRef.current,
+      map: "world_merc",
+      zoomButtons: false,
+      zoomOnScroll: false,
+      draggable: true,
+      regionStyle: {
+        initial: {
+          fill: "#53565A",
+          stroke: "#C0B9AB",
+          strokeWidth: 0.5,
+          fillOpacity: 1
         },
-        selectedRegions: activeCountryCodes,
-        regionSeries: {
-          fill: {
-            scale: {
-              active: "#F17633",
-              default: "#53565A"
-            },
-            values: seriesValues
-          }
+        hover: {
+          fill: "#69989E",
+          fillOpacity: 1,
+          cursor: "pointer"
         },
-        onRegionTooltipShow(_event: any, tooltip: any, code: string) {
-          const data = tooltipDataMap?.[code] || COUNTRY_TOOLTIP_MAP[code];
-          const rawName = tooltip.text();
-          if (data) {
-            tooltip.text(
-              `<div style="padding: 10px 14px; background: #ffffff; color: #0f172a; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; font-family: system-ui, sans-serif; font-size: 11px; min-width: 140px;">
-                <div style="font-weight: 800; font-size: 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; color: #1e293b;">
-                  <span style="font-size: 14px;">${data.flag}</span>
-                  <span>${data.name}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 4px;">
-                  <span style="color: #64748b; font-weight: 600;">Conexiones:</span>
-                  <span style="font-weight: 800; color: #F17633; font-family: monospace;">${data.connections}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 2px;">
-                  <span style="color: #64748b; font-weight: 600;">Comunidad:</span>
-                  <span style="font-weight: 800; color: #294C74; font-family: monospace;">${data.community}</span>
-                </div>
-              </div>`,
-              true
-            );
-          } else {
-            tooltip.text(
-              `<div style="padding: 8px 12px; background: #ffffff; color: #0f172a; border-radius: 10px; font-family: system-ui, sans-serif; font-size: 11px; font-weight: 700; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">${rawName}</div>`,
-              true
-            );
-          }
+        selected: {
+          fill: "#F17633"
         }
-      });
-    }
+      },
+      selectedRegions: activeCountryCodes,
+      regionSeries: {
+        fill: {
+          scale: {
+            active: "#F17633",
+            default: "#53565A"
+          },
+          values: seriesValues
+        }
+      },
+      onRegionTooltipShow(_event: any, tooltip: any, code: string) {
+        const data = (countryDataMap && countryDataMap[code]) || COUNTRY_TOOLTIP_MAP[code];
+        const rawName = tooltip.text();
+        if (data) {
+          tooltip.text(
+            `<div style="padding: 10px 14px; background: #ffffff; color: #0f172a; border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25); border: 1px solid #e2e8f0; font-family: system-ui, sans-serif; font-size: 11px; min-width: 140px;">
+              <div style="font-weight: 800; font-size: 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; color: #1e293b;">
+                <span style="font-size: 14px;">${data.flag}</span>
+                <span>${data.name}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 4px;">
+                <span style="color: #64748b; font-weight: 600;">Conexiones:</span>
+                <span style="font-weight: 800; color: #F17633; font-family: monospace;">${data.connections}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 2px;">
+                <span style="color: #64748b; font-weight: 600;">Comunidad:</span>
+                <span style="font-weight: 800; color: #294C74; font-family: monospace;">${data.community}</span>
+              </div>
+            </div>`,
+            true
+          );
+        } else {
+          tooltip.text(
+            `<div style="padding: 8px 12px; background: #ffffff; color: #0f172a; border-radius: 10px; font-family: system-ui, sans-serif; font-size: 11px; font-weight: 700; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);">${rawName}</div>`,
+            true
+          );
+        }
+      }
+    });
 
     return () => {
       if (mapInstanceRef.current) {
@@ -569,7 +559,7 @@ function PrelineRealJsVectorMap({
         } catch (e) {}
       }
     };
-  }, [activeCountryCodes, tooltipDataMap]);
+  }, [activeCountryCodes, countryDataMap]);
 
   return <div ref={mapContainerRef} className="h-[400px] w-full overflow-hidden" />;
 }
@@ -657,6 +647,19 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
     const interval = setInterval(fetchLiveServerStats, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  const tooltipDataMap = useMemo(() => {
+    const map: Record<string, { name: string; flag: string; connections: string; community: string }> = { ...COUNTRY_TOOLTIP_MAP };
+    liveCountryTable.forEach((row) => {
+      map[row.code] = {
+        name: row.country,
+        flag: row.flag,
+        connections: row.visits,
+        community: row.purchases.replace("Jugadores: ", ""),
+      };
+    });
+    return map;
+  }, [liveCountryTable]);
 
   return (
     <div 
@@ -767,27 +770,10 @@ function GeographyAnalyticsWidget({ isDark = false }: { isDark?: boolean }) {
         
         {/* Left 7 Cols: Real Expansive JSVectorMap World Vector Map */}
         <div className="lg:col-span-7 relative h-[400px] w-full flex items-center justify-center">
-          {(() => {
-            const mapData: Record<string, { name: string; flag: string; connections: string; community: string }> = {};
-            if (Array.isArray(liveCountryTable)) {
-              liveCountryTable.forEach((row: any) => {
-                if (row && row.code) {
-                  mapData[row.code] = {
-                    name: row.country || "",
-                    flag: row.flag || "",
-                    connections: String(row.visits || row.rawVisits || 0),
-                    community: String(row.purchases || "").replace("Jugadores: ", "")
-                  };
-                }
-              });
-            }
-            return (
-              <PrelineRealJsVectorMap 
-                activeCountryCodes={allCountryCodes} 
-                tooltipDataMap={mapData}
-              />
-            );
-          })()}
+          <PrelineRealJsVectorMap 
+            activeCountryCodes={allCountryCodes} 
+            countryDataMap={tooltipDataMap}
+          />
 
           <div className={`absolute bottom-2 left-2 border px-3 py-1.5 rounded-lg text-[10px] font-mono pointer-events-none ${
             isDark ? "bg-black/80 border-white/10 text-slate-300" : "bg-[#294C74]/90 border-[#C0B9AB]/40 text-white shadow-xs"
